@@ -1,0 +1,182 @@
+<!doctype html>
+{{!--
+  base.hbs — shared document shell for ALL document types (Quotation /
+  Proforma / Purchase Order / Tax Invoice). The per-type body partial is
+  injected via a dynamic partial (lookup doc 'bodyPartial') so Phase 2 adds
+  new types by config alone (register a new body partial + point docConfig
+  at it).
+
+  Every partial consumes the SAME computed-document JSON produced by
+  gst.engine.computeDocument + documentPdf.service. CSS is intentionally
+  inline + print-oriented so it mirrors the React DocumentPreview later.
+
+  NOTE: use Handlebars block comments (curly-bang-dash-dash) here, NOT HTML
+  comments — Handlebars parses inside HTML comments, so partial-looking text
+  would be treated as a real partial invocation. Also never write the literal
+  closing delimiter inside a block comment: the comment ends at the FIRST one
+  Handlebars sees, and the rest leaks into the rendered document.
+--}}
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{doc.title}} {{#if doc.docNumber}}{{doc.docNumber}}{{/if}}</title>
+    <style>
+      /* Web-safe stack incl. fonts that carry the Rupee sign (₹). Segoe UI
+         (Windows) and Noto Sans render U+20B9; we still expose a Rs. fallback
+         via the |inr helper so the glyph never shows as tofu. */
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", "Noto Sans", "DejaVu Sans", Roboto, Arial, sans-serif;
+        font-size: 11px;
+        color: #1f2933;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .page { padding: 0; }
+      .muted { color: #6b7280; }
+      .right { text-align: right; }
+      .center { text-align: center; }
+      .nowrap { white-space: nowrap; }
+      .bold { font-weight: 600; }
+      .small { font-size: 10px; }
+      .tiny { font-size: 9px; }
+
+      /* DRAFT watermark — only emitted when doc.draft is true. */
+      {{#if doc.draft}}
+      body::before {
+        content: "DRAFT";
+        position: fixed;
+        top: 42%;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 120px;
+        font-weight: 700;
+        color: rgba(220, 38, 38, 0.10);
+        transform: rotate(-30deg);
+        z-index: 0;
+        pointer-events: none;
+        letter-spacing: 12px;
+      }
+      {{/if}}
+
+      /* CANCELLED watermark — emitted when doc.cancelled is true so a cancelled
+         document can never be presented as a valid invoice. */
+      {{#if doc.cancelled}}
+      body::before {
+        content: "CANCELLED";
+        position: fixed;
+        top: 42%;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 110px;
+        font-weight: 700;
+        color: rgba(220, 38, 38, 0.12);
+        transform: rotate(-30deg);
+        z-index: 0;
+        pointer-events: none;
+        letter-spacing: 10px;
+      }
+      {{/if}}
+
+      .doc-title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin: 6px 0 2px;
+      }
+      .doc-subtitle { text-align: center; font-size: 10px; margin-bottom: 8px; }
+
+      table { width: 100%; border-collapse: collapse; }
+      .bordered, .bordered th, .bordered td { border: 0.5px solid #9aa5b1; }
+      .bordered th, .bordered td { padding: 4px 6px; vertical-align: top; }
+      thead { display: table-header-group; } /* repeat header across pages */
+      tr { page-break-inside: avoid; }
+
+      .section { margin-bottom: 8px; }
+
+      /* Seller header */
+      .seller-header { display: table; width: 100%; margin-bottom: 8px; }
+      .seller-header .logo-cell { display: table-cell; width: 90px; vertical-align: top; }
+      .seller-header .logo-cell img { max-width: 84px; max-height: 84px; object-fit: contain; }
+      .seller-header .info-cell { display: table-cell; vertical-align: top; padding-left: 8px; }
+      .seller-name { font-size: 15px; font-weight: 700; }
+
+      /* Two-column blocks (party + meta) */
+      .two-col { display: table; width: 100%; table-layout: fixed; }
+      .two-col > div { display: table-cell; width: 50%; vertical-align: top; }
+
+      .block-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        margin-bottom: 2px;
+      }
+
+      /* Items table */
+      .items th { background: #eef2f7; font-size: 9.5px; text-transform: uppercase; }
+      .items td.num, .items th.num { text-align: right; white-space: nowrap; }
+
+      /* Totals + summary */
+      .totals-wrap { display: table; width: 100%; table-layout: fixed; margin-top: 6px; }
+      .totals-wrap > div { display: table-cell; vertical-align: top; }
+      .totals-left { width: 55%; padding-right: 8px; }
+      .totals-right { width: 45%; }
+      .totals-table td { padding: 3px 6px; }
+      .grand-row td { font-weight: 700; font-size: 12px; border-top: 1px solid #1f2933; }
+
+      .words { margin-top: 6px; font-style: italic; }
+
+      /* Footer */
+      .footer { margin-top: 10px; }
+      .footer .two-col > div { padding-right: 8px; }
+      .declaration { font-size: 9.5px; }
+      .signature-box {
+        text-align: right;
+        min-height: 70px;
+      }
+      .signature-box img { max-height: 48px; max-width: 160px; object-fit: contain; }
+      .rcm-note, .gst-note {
+        margin-top: 6px;
+        font-weight: 600;
+        font-size: 10px;
+      }
+      .sysgen-note {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 9px;
+        color: #6b7280;
+      }
+      /* Phase 6 (e-invoice IRN QR) skipped — .qr-slot unused while the QR block
+         in footer.hbs is commented out. Uncomment together with it.
+      .qr-slot {
+        width: 90px;
+        height: 90px;
+        border: 0.5px dashed #9aa5b1;
+        display: inline-block;
+        text-align: center;
+        line-height: 90px;
+        color: #9aa5b1;
+        font-size: 8px;
+      }
+      */
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      {{> sellerHeader }}
+
+      {{!-- per-type body partial (e.g. taxInvoiceBody) — chosen by config --}}
+      {{> (lookup doc 'bodyPartial') }}
+
+      {{> footer }}
+    </div>
+  </body>
+</html>

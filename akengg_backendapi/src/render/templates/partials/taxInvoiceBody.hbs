@@ -1,0 +1,12 @@
+{{!-- taxInvoiceBody.hbs — per-type body for the TAX INVOICE. Phase 2 adds
+      quotationBody / proformaBody / purchaseOrderBody siblings, each selected
+      by docConfig via doc.bodyPartial. The body just composes shared partials
+      around a type-specific title + copy label. --}}
+<div class="doc-title">Tax Invoice</div>
+<div class="doc-subtitle muted">{{#if doc.copyLabel}}{{doc.copyLabel}}{{else}}Original for Recipient{{/if}}</div>
+
+{{> metaBlock }}
+{{> partyBlock }}
+{{> itemsTable }}
+{{> gstSummary }}
+{{> totals }}

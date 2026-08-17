@@ -1,0 +1,13 @@
+{{!-- quotationBody.hbs — per-type body for the QUOTATION. Quotations default to
+      no_tax (doc.showTax false), so the shared itemsTable/totals partials drop
+      their GST columns and the HSN/tax summary is intentionally omitted. The
+      same partials still render full GST if a quotation is overridden to a
+      taxable treatment. --}}
+<div class="doc-title">Quotation</div>
+<div class="doc-subtitle muted">Quotation — subject to terms below. Not a Tax Invoice.</div>
+
+{{> metaBlock }}
+{{> partyBlock }}
+{{> itemsTable }}
+{{> gstSummary }}
+{{> totals }}

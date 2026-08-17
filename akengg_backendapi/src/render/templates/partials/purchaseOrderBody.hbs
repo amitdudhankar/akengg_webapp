@@ -1,0 +1,12 @@
+{{!-- purchaseOrderBody.hbs — per-type body for the PURCHASE ORDER. Here we are
+      the BUYER, so the party block is the vendor (party.billLabel = "Vendor").
+      Full GST is shown (expected tax on the purchase); the signature block in
+      the footer is our authorising signatory. --}}
+<div class="doc-title">Purchase Order</div>
+<div class="doc-subtitle muted">Please supply the goods / services below as per the terms.</div>
+
+{{> metaBlock }}
+{{> partyBlock }}
+{{> itemsTable }}
+{{> gstSummary }}
+{{> totals }}

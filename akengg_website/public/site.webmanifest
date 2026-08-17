@@ -1,0 +1,13 @@
+{
+  "name": "A K Engineering",
+  "short_name": "AK Engineering",
+  "description": "Turnkey IBR boiler systems, industrial fabrication, water treatment and pollution-control solutions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#234B97",
+  "icons": [
+    { "src": "/assets/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/Logo.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,56 @@
+{{!-- itemsTable.hbs — line items with a thead that repeats on every printed
+      page (display:table-header-group in base.hbs). When doc.showTax is true the
+      tax columns adapt to supply type (intra shows CGST+SGST, inter shows IGST);
+      when false (no_tax docs, e.g. quotations) the Taxable and tax columns are
+      dropped (Taxable would just duplicate Amount without tax). --}}
+<table class="bordered items section">
+  <thead>
+    <tr>
+      <th class="num" style="width:4%">#</th>
+      <th style="width:30%">Description</th>
+      <th style="width:9%">HSN/SAC</th>
+      <th class="num" style="width:8%">Qty</th>
+      <th style="width:6%">UQC</th>
+      <th class="num" style="width:11%">Rate</th>
+      <th class="num" style="width:10%">Discount</th>
+      {{#if doc.showTax}}
+        <th class="num" style="width:11%">Taxable</th>
+        {{#if (eq totals.supplyType 'inter')}}
+          <th class="num" style="width:11%">IGST</th>
+        {{else}}
+          <th class="num" style="width:11%">CGST</th>
+          <th class="num" style="width:11%">SGST</th>
+        {{/if}}
+      {{/if}}
+      <th class="num" style="width:12%">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td class="num">{{inc @index}}</td>
+      <td>
+        <div class="bold">{{this.name}}</div>
+        {{#if this.description}}<div class="tiny muted">{{this.description}}</div>{{/if}}
+      </td>
+      <td>{{this.hsnSac}}</td>
+      <td class="num">{{qty this.qty}}</td>
+      <td>{{this.uqc}}</td>
+      <td class="num">{{inr this.rate}}</td>
+      <td class="num">
+        {{#if this.discountAmount}}{{inr this.discountAmount}}{{else}}-{{/if}}
+      </td>
+      {{#if ../doc.showTax}}
+        <td class="num">{{inr this.taxableValue}}</td>
+        {{#if (eq ../totals.supplyType 'inter')}}
+          <td class="num">{{inr this.igstAmount}}<div class="tiny muted">{{pct this.igstRate}}</div></td>
+        {{else}}
+          <td class="num">{{inr this.cgstAmount}}<div class="tiny muted">{{pct this.cgstRate}}</div></td>
+          <td class="num">{{inr this.sgstAmount}}<div class="tiny muted">{{pct this.sgstRate}}</div></td>
+        {{/if}}
+      {{/if}}
+      <td class="num">{{inr this.lineTotal}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>

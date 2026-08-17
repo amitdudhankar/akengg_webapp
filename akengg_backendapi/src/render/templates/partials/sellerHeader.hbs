@@ -1,0 +1,25 @@
+{{!-- sellerHeader.hbs — company branding + legal identity (shared by all types).
+      Logo is resolved to a public URL by the service via assetUrl(seller.logoKey). --}}
+<div class="seller-header">
+  {{#if seller.logoUrl}}
+  <div class="logo-cell">
+    <img src="{{seller.logoUrl}}" alt="logo" />
+  </div>
+  {{/if}}
+  <div class="info-cell">
+    <div class="seller-name">{{#if seller.tradeName}}{{seller.tradeName}}{{else}}{{seller.legalName}}{{/if}}</div>
+    {{#if seller.legalName}}{{#if seller.tradeName}}<div class="small">{{seller.legalName}}</div>{{/if}}{{/if}}
+    <div class="small">
+      {{#if seller.addressLine1}}{{seller.addressLine1}}{{/if}}{{#if seller.addressLine2}}, {{seller.addressLine2}}{{/if}}
+    </div>
+    <div class="small">
+      {{#if seller.city}}{{seller.city}}{{/if}}{{#if seller.state}}, {{seller.state}}{{/if}}{{#if seller.pincode}} - {{seller.pincode}}{{/if}}{{#if seller.stateCode}} (State Code: {{seller.stateCode}}){{/if}}
+    </div>
+    <div class="small">
+      {{#if seller.gstin}}<span class="bold">GSTIN:</span> {{seller.gstin}}{{/if}}{{#if seller.pan}} &nbsp; <span class="bold">PAN:</span> {{seller.pan}}{{/if}}{{#if seller.cin}} &nbsp; <span class="bold">CIN:</span> {{seller.cin}}{{/if}}
+    </div>
+    <div class="small">
+      {{#if seller.phone}}<span class="bold">Ph:</span> {{seller.phone}}{{/if}}{{#if seller.email}} &nbsp; <span class="bold">Email:</span> {{seller.email}}{{/if}}
+    </div>
+  </div>
+</div>

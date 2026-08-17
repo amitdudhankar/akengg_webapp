@@ -1,0 +1,78 @@
+{{!-- footer.hbs — declaration + bank details (left) and signature block (right).
+      Shared by all types. The e-invoice IRN QR slot is commented out below
+      (Phase 6 skipped). --}}
+<div class="footer">
+  {{#if doc.terms}}
+  <div class="section">
+    <div class="block-label">Terms &amp; Conditions</div>
+    <div class="small">{{{nl2br doc.terms}}}</div>
+  </div>
+  {{/if}}
+
+  {{#if doc.notes}}
+  <div class="section">
+    <div class="block-label">Notes</div>
+    <div class="small">{{{nl2br doc.notes}}}</div>
+  </div>
+  {{/if}}
+
+  <div class="two-col section">
+    <div>
+      {{#if seller.hasBank}}
+      <div class="block-label">Bank Details</div>
+      <table class="small">
+        {{#if seller.bankName}}<tr><td class="bold nowrap">Bank</td><td>: {{seller.bankName}}</td></tr>{{/if}}
+        {{#if seller.bankAccountName}}<tr><td class="bold nowrap">A/c Name</td><td>: {{seller.bankAccountName}}</td></tr>{{/if}}
+        {{#if seller.bankAccountNo}}<tr><td class="bold nowrap">A/c No.</td><td>: {{seller.bankAccountNo}}</td></tr>{{/if}}
+        {{#if seller.bankIfsc}}<tr><td class="bold nowrap">IFSC</td><td>: {{seller.bankIfsc}}</td></tr>{{/if}}
+        {{#if seller.bankBranch}}<tr><td class="bold nowrap">Branch</td><td>: {{seller.bankBranch}}</td></tr>{{/if}}
+        {{#if seller.upiId}}<tr><td class="bold nowrap">UPI</td><td>: {{seller.upiId}}</td></tr>{{/if}}
+      </table>
+      {{/if}}
+
+      {{#if doc.declaration}}
+      <div class="block-label" style="margin-top:6px">Declaration</div>
+      <div class="declaration">{{{nl2br doc.declaration}}}</div>
+      {{/if}}
+
+      {{#if doc.disclaimer}}
+      <div class="declaration bold" style="margin-top:6px">{{doc.disclaimer}}</div>
+      {{/if}}
+    </div>
+
+    <div>
+      <div class="signature-box">
+        <div class="block-label">For {{#if seller.tradeName}}{{seller.tradeName}}{{else}}{{seller.legalName}}{{/if}}</div>
+        {{!-- Deliberate blank space — no signature image is printed; documents
+              carry the system-generated note below instead. --}}
+        <div style="height:48px"></div>
+        {{#if seller.signatoryName}}
+        <div class="bold">{{seller.signatoryName}}</div>
+        {{#if seller.signatoryDesignation}}
+        <div class="small muted">{{seller.signatoryDesignation}}</div>
+        {{/if}}
+        {{/if}}
+        <div class="small">Authorised Signatory</div>
+      </div>
+
+      {{!-- Phase 6 (e-invoice IRN QR) skipped — QR slot commented out 2026-07-09.
+            To restore, uncomment this block plus the .qr-slot CSS in base.hbs and
+            the signedQrCode mapping in documentPdf.service.js. Keep this as ONE
+            comment (no nested comment closers — the comment ends at the first one).
+      <div class="right" style="margin-top:8px">
+        {{#if doc.signedQrCode}}
+          <img class="qr-slot" style="line-height:normal" src="{{doc.signedQrCode}}" alt="e-invoice QR" />
+        {{else}}
+          <span class="qr-slot">QR</span>
+        {{/if}}
+      </div>
+      --}}
+    </div>
+  </div>
+
+  {{#if doc.reverseCharge}}
+  <div class="rcm-note">Note: This is a Reverse Charge supply — GST is payable by the recipient under RCM.</div>
+  {{/if}}
+
+  <div class="sysgen-note">This is a system-generated {{doc.title}} and does not require a physical signature.</div>
+</div>

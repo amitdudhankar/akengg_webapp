@@ -1,0 +1,38 @@
+{{!-- partyBlock.hbs — bill-to / ship-to for the counterparty. Label is driven
+      by config (party.role e.g. "Bill To" for invoices, "Vendor" for POs). --}}
+<div class="two-col section">
+  <div>
+    <div class="block-label">{{#if party.billLabel}}{{party.billLabel}}{{else}}Bill To{{/if}}</div>
+    <div class="bold">{{party.name}}</div>
+    <div class="small">
+      {{#if party.billingAddressLine1}}{{party.billingAddressLine1}}{{/if}}{{#if party.billingAddressLine2}}, {{party.billingAddressLine2}}{{/if}}
+    </div>
+    <div class="small">
+      {{#if party.billingCity}}{{party.billingCity}}{{/if}}{{#if party.billingState}}, {{party.billingState}}{{/if}}{{#if party.billingPincode}} - {{party.billingPincode}}{{/if}}
+    </div>
+    <div class="small">
+      {{#if party.gstin}}<span class="bold">GSTIN:</span> {{party.gstin}}{{else}}<span class="muted">Unregistered</span>{{/if}}
+    </div>
+    <div class="small">
+      {{#if party.billingStateCode}}<span class="bold">State Code:</span> {{party.billingStateCode}}{{/if}}
+    </div>
+    {{#if party.phone}}<div class="small"><span class="bold">Ph:</span> {{party.phone}}</div>{{/if}}
+  </div>
+  <div>
+    <div class="block-label">Ship To</div>
+    {{#if party.hasShipping}}
+      <div class="bold">{{party.name}}</div>
+      <div class="small">
+        {{#if party.shippingAddressLine1}}{{party.shippingAddressLine1}}{{/if}}{{#if party.shippingAddressLine2}}, {{party.shippingAddressLine2}}{{/if}}
+      </div>
+      <div class="small">
+        {{#if party.shippingCity}}{{party.shippingCity}}{{/if}}{{#if party.shippingState}}, {{party.shippingState}}{{/if}}{{#if party.shippingPincode}} - {{party.shippingPincode}}{{/if}}
+      </div>
+      <div class="small">
+        {{#if party.shippingStateCode}}<span class="bold">State Code:</span> {{party.shippingStateCode}}{{/if}}
+      </div>
+    {{else}}
+      <div class="small muted">Same as billing address</div>
+    {{/if}}
+  </div>
+</div>

@@ -1,0 +1,12 @@
+{{!-- proformaBody.hbs — per-type body for the PROFORMA INVOICE. Same full-GST
+      composition as the tax invoice, but titled "Proforma Invoice" and carrying
+      the "not a tax invoice / no ITC" disclaimer (rendered prominently here and
+      again formally in the footer via doc.disclaimer). --}}
+<div class="doc-title">Proforma Invoice</div>
+<div class="doc-subtitle muted">Not a Tax Invoice — not valid for input tax credit (ITC).</div>
+
+{{> metaBlock }}
+{{> partyBlock }}
+{{> itemsTable }}
+{{> gstSummary }}
+{{> totals }}

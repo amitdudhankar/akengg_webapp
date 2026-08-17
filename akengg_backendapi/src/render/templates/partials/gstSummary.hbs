@@ -1,0 +1,59 @@
+{{!-- gstSummary.hbs — tax breakup grouped by HSN/SAC + GST rate (CGST Rule 46
+      tax-rate summary). hsnSummary rows are pre-aggregated by the service.
+      Suppressed entirely for no_tax documents (doc.showTax false). --}}
+{{#if doc.showTax}}
+{{#if hsnSummary.length}}
+<table class="bordered section">
+  <thead>
+    <tr>
+      <th>HSN/SAC</th>
+      <th class="num">Taxable Value</th>
+      {{#if (eq totals.supplyType 'inter')}}
+        <th class="num">IGST Rate</th>
+        <th class="num">IGST Amt</th>
+      {{else}}
+        <th class="num">CGST Rate</th>
+        <th class="num">CGST Amt</th>
+        <th class="num">SGST Rate</th>
+        <th class="num">SGST Amt</th>
+      {{/if}}
+      <th class="num">Total Tax</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each hsnSummary}}
+    <tr>
+      <td>{{this.hsnSac}}</td>
+      <td class="num">{{inr this.taxableValue}}</td>
+      {{#if (eq ../totals.supplyType 'inter')}}
+        <td class="num">{{pct this.igstRate}}</td>
+        <td class="num">{{inr this.igstAmount}}</td>
+      {{else}}
+        <td class="num">{{pct this.cgstRate}}</td>
+        <td class="num">{{inr this.cgstAmount}}</td>
+        <td class="num">{{pct this.sgstRate}}</td>
+        <td class="num">{{inr this.sgstAmount}}</td>
+      {{/if}}
+      <td class="num">{{inr this.totalTax}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+  <tfoot>
+    <tr class="bold">
+      <td class="right">Total</td>
+      <td class="num">{{inr totals.totalTaxable}}</td>
+      {{#if (eq totals.supplyType 'inter')}}
+        <td></td>
+        <td class="num">{{inr totals.totalIgst}}</td>
+      {{else}}
+        <td></td>
+        <td class="num">{{inr totals.totalCgst}}</td>
+        <td></td>
+        <td class="num">{{inr totals.totalSgst}}</td>
+      {{/if}}
+      <td class="num">{{inr totals.totalTax}}</td>
+    </tr>
+  </tfoot>
+</table>
+{{/if}}
+{{/if}}

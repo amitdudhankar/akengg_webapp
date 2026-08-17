@@ -1,0 +1,16 @@
+{{!-- metaBlock.hbs — document metadata grid: number, dates, place of supply,
+      reverse charge, supply type. Shared by all document types. --}}
+<table class="bordered section">
+  <tr>
+    <td style="width:25%"><span class="block-label">{{doc.title}} No.</span><div class="bold">{{#if doc.docNumber}}{{doc.docNumber}}{{else}}<span class="muted">— (Draft)</span>{{/if}}</div></td>
+    <td style="width:25%"><span class="block-label">Date</span><div>{{#if doc.docDate}}{{doc.docDate}}{{else}}<span class="muted">—</span>{{/if}}</div></td>
+    <td style="width:25%"><span class="block-label">{{#if doc.dueLabel}}{{doc.dueLabel}}{{else}}Due Date{{/if}}</span><div>{{#if doc.dueDate}}{{doc.dueDate}}{{else}}<span class="muted">—</span>{{/if}}</div></td>
+    <td style="width:25%"><span class="block-label">Reference</span><div>{{#if doc.referenceNo}}{{doc.referenceNo}}{{else}}<span class="muted">—</span>{{/if}}</div></td>
+  </tr>
+  <tr>
+    <td><span class="block-label">Place of Supply</span><div>{{#if doc.placeOfSupply}}{{doc.placeOfSupply}}{{/if}}{{#if doc.placeOfSupplyCode}} ({{doc.placeOfSupplyCode}}){{/if}}</div></td>
+    <td><span class="block-label">Supply Type</span><div>{{#if doc.showTax}}{{#if (eq totals.supplyType 'inter')}}Inter-State (IGST){{else}}Intra-State (CGST + SGST){{/if}}{{else}}GST extra as applicable{{/if}}</div></td>
+    <td><span class="block-label">Reverse Charge</span><div>{{#if doc.reverseCharge}}Yes{{else}}No{{/if}}</div></td>
+    <td><span class="block-label">Currency</span><div>{{#if doc.currency}}{{doc.currency}}{{else}}INR{{/if}}</div></td>
+  </tr>
+</table>

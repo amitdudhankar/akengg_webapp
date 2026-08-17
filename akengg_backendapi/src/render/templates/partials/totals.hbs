@@ -1,0 +1,53 @@
+{{!-- totals.hbs — money summary (right column) + amount-in-words (left).
+      Shows CGST/SGST for intra, IGST for inter. grand_total already EXCLUDES
+      RCM tax when reverse_charge is set (handled in the engine). --}}
+<div class="totals-wrap">
+  <div class="totals-left">
+    <div class="words">
+      <span class="block-label">Amount in Words</span>
+      <div class="bold">{{doc.amountInWords}}</div>
+    </div>
+    {{#if doc.reverseCharge}}
+    <div class="rcm-note">Tax payable on Reverse Charge by recipient.</div>
+    {{/if}}
+    {{#unless doc.showTax}}
+    <div class="gst-note">GST extra as applicable at invoicing.</div>
+    {{/unless}}
+  </div>
+  <div class="totals-right">
+    <table class="bordered totals-table">
+      <tr>
+        <td>Sub Total</td>
+        <td class="num">{{inr totals.subTotal}}</td>
+      </tr>
+      {{#if totals.totalDiscount}}
+      <tr>
+        <td>Discount</td>
+        <td class="num">- {{inr totals.totalDiscount}}</td>
+      </tr>
+      {{/if}}
+      <tr>
+        <td>{{#if doc.showTax}}Taxable Value{{else}}Net Amount{{/if}}</td>
+        <td class="num">{{inr totals.totalTaxable}}</td>
+      </tr>
+      {{#if doc.showTax}}
+        {{#if (eq totals.supplyType 'inter')}}
+          <tr><td>IGST</td><td class="num">{{inr totals.totalIgst}}</td></tr>
+        {{else}}
+          <tr><td>CGST</td><td class="num">{{inr totals.totalCgst}}</td></tr>
+          <tr><td>SGST</td><td class="num">{{inr totals.totalSgst}}</td></tr>
+        {{/if}}
+      {{/if}}
+      {{#if totals.roundOff}}
+      <tr>
+        <td>Round Off</td>
+        <td class="num">{{inr totals.roundOff}}</td>
+      </tr>
+      {{/if}}
+      <tr class="grand-row">
+        <td>Grand Total</td>
+        <td class="num">{{inr totals.grandTotal}}</td>
+      </tr>
+    </table>
+  </div>
+</div>
