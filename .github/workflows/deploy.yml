@@ -30,10 +30,20 @@ jobs:
           VITE_SITE_URL=https://www.akengg.in
           EOF
           npm install
-          npm run build
+          # build:seo = vite build + scripts/prerender.mjs, which renders each
+          # static route with headless Chromium and writes real HTML (title,
+          # meta, canonical, JSON-LD, content). Plain `npm run build` ships an
+          # empty #root shell, so crawlers and social scrapers see nothing.
+          npm run build:seo
           # Fail the deploy rather than ship a bundle pointing at localhost.
           if grep -rq "localhost:8080" dist/assets; then
             echo "::error::Built website bundle still references localhost:8080 — VITE_API_BASE_URL was not applied."
+            exit 1
+          fi
+          # Fail rather than ship an unprerendered shell (e.g. if Chromium
+          # could not launch on the runner).
+          if ! grep -q "<title>" dist/index.html; then
+            echo "::error::dist/index.html has no <title> — the prerender step did not run."
             exit 1
           fi
 
