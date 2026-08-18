@@ -3,6 +3,8 @@
 // Storage abstraction. The rest of the app NEVER deals with disk paths or
 // bucket URLs directly — it only uses:
 //   createUploader(folder) -> multer instance for handling uploads
+//   createMemoryUploader() -> multer instance that buffers in RAM, for uploads
+//                             that must be transformed before being stored
 //   keyFromFile(folder, f) -> the driver-agnostic KEY to store in the DB
 //   assetUrl(key)          -> public URL built from a stored key  [async]
 //   deleteAsset(key)       -> remove the underlying object
@@ -33,7 +35,14 @@ const multer = require("multer");
 const AppError = require("./appError");
 
 const STORAGE_DRIVER = (process.env.STORAGE_DRIVER || "local").toLowerCase();
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB — stored as-is, so keep it tight.
+
+// Ceiling for uploads that get re-encoded before they are stored (see
+// createMemoryUploader + middlewares/imageCompression.js). It can be far more
+// generous than MAX_FILE_SIZE because what lands in the bucket is the
+// compressed output, not this: a 20MB phone photo is stored as ~200KB of WebP.
+// Rejecting those outright would defeat the point of compressing at all.
+const MAX_SOURCE_IMAGE_SIZE = 25 * 1024 * 1024; // 25MB
 
 // Local disk root that is served publicly at /uploads (see app.js).
 const UPLOAD_ROOT = path.join(__dirname, "..", "public", "uploads");
@@ -232,6 +241,25 @@ const createUploader = (folder) => {
 };
 
 /**
+ * Multer instance that keeps the upload in memory instead of streaming it
+ * straight to disk/S3, so a later middleware can transform the bytes before
+ * they are persisted — see middlewares/imageCompression.js, which re-encodes
+ * the image and then stores it with putBuffer().
+ *
+ * Accepts inputs up to MAX_SOURCE_IMAGE_SIZE rather than MAX_FILE_SIZE, since
+ * the caller is expected to shrink the bytes before storing them. The folder is
+ * not needed here because nothing is written until putBuffer() is called.
+ *
+ * @param {{maxFileSize?: number}} [options]
+ */
+const createMemoryUploader = ({ maxFileSize = MAX_SOURCE_IMAGE_SIZE } = {}) =>
+  multer({
+    storage: multer.memoryStorage(),
+    fileFilter: imageFileFilter,
+    limits: { fileSize: maxFileSize },
+  });
+
+/**
  * Driver-agnostic storage key to persist in the DB: "<folder>/<filename>".
  * With multer-s3, file.key already contains the full object key.
  */
@@ -409,7 +437,11 @@ const readBuffer = async (key) => {
 module.exports = {
   STORAGE_DRIVER,
   UPLOAD_ROOT,
+  MAX_FILE_SIZE,
+  MAX_SOURCE_IMAGE_SIZE,
   createUploader,
+  createMemoryUploader,
+  sanitizeFileName,
   keyFromFile,
   assetUrl,
   deleteAsset,

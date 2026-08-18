@@ -2,9 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { X } from "lucide-react";
 import { submitContact } from "../../api/api";
+import { useToast } from "../Toast/ToastProvider";
 
 const Popup = ({ visible, onClose }) => {
   const popupRef = useRef(null);
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,10 +31,10 @@ const Popup = ({ visible, onClose }) => {
         service: formData.service,
         source: "popup",
       });
-      alert("Thank you! We'll be in touch soon.");
+      toast.success("We have received your enquiry and will be in touch soon.");
       onClose();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || "Could not send your enquiry. Please try again.");
     }
   };
 

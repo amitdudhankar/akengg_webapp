@@ -19,6 +19,44 @@ html, body {
   color: #333;
 }
 
+/* ── Toast notifications ───────────────────────────────────────────────────
+   Used by Components/Toast/ToastProvider.jsx via Tailwind's arbitrary
+   animation syntax, e.g. animate-[toast-in_260ms_...]. Defined here because
+   Tailwind can only reference keyframes that exist in the stylesheet. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(1.5rem) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(1.5rem); }
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* Anyone who has asked for less motion still gets the toast, just without the
+   slide — and the progress bar holds instead of animating. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes toast-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes toast-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+
+  @keyframes toast-progress {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(1); }
+  }
+}
+
 /* ── Blog article body ─────────────────────────────────────────────────────
    Blog content is rich HTML authored in the admin panel's Jodit editor, so it
    arrives as real tags (<p>, <h2>, <ul>, <a>, <img>, <table>…) rather than

@@ -51,18 +51,20 @@
 // export default ClientLogos;
 import React, { useState } from "react";
 import { subscribeNewsletter } from "../api/api";
+import { useToast } from "./Toast/ToastProvider";
 
 export default function GetStartedSection() {
   const [email, setEmail] = useState("");
+  const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await subscribeNewsletter(email);
-      alert("Thank you for subscribing! We'll be in touch.");
+      toast.success("You are subscribed. Look out for updates from us.", "Thanks for subscribing");
       setEmail("");
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || "Could not subscribe. Please try again.");
     }
   };
 

@@ -7,6 +7,8 @@ import Popup from "./Components/Popup/Popup.jsx";
 import ScrollToTop from "./Components/ScrollToTop/ScrollToTop.jsx";
 import { SettingsProvider } from "./context/SettingsContext.jsx";
 import SiteSchema from "./Components/SiteSchema.jsx";
+import CookieConsent from "./Components/CookieConsent.jsx";
+import { ToastProvider } from "./Components/Toast/ToastProvider.jsx";
 
 function App() {
   const [popupVisible, setPopupVisible] = useState(false);
@@ -29,18 +31,21 @@ function App() {
 
   return (
     <SettingsProvider>
-      <SiteSchema />
-      <Router>
-        <ScrollToTop />
-        <Popup visible={popupVisible} onClose={handleClosePopup} />
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-grow">
-            <AppRoutes />
-          </main>
-          <Footer />
-        </div>
-      </Router>
+      <ToastProvider>
+        <SiteSchema />
+        <Router>
+          <ScrollToTop />
+          <Popup visible={popupVisible} onClose={handleClosePopup} />
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow">
+              <AppRoutes />
+            </main>
+            <Footer />
+          </div>
+          <CookieConsent />
+        </Router>
+      </ToastProvider>
     </SettingsProvider>
   );
 }

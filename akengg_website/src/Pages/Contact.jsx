@@ -3,9 +3,11 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import { submitContact } from "../api/api";
 import { useSettings } from "../context/SettingsContext";
 import Seo from "../Components/Seo";
+import { useToast } from "../Components/Toast/ToastProvider";
 
 const Contact = () => {
   const { settings } = useSettings();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -23,10 +25,10 @@ const Contact = () => {
         message: formData.message,
         source: "contact_page",
       });
-      alert("Thank you for your message! We will get back to you soon.");
+      toast.success("We have received your message and will get back to you soon.");
       setFormData({ name: "", email: "", phone: "", message: "" });
     } catch (err) {
-      alert(err.message || "Something went wrong");
+      toast.error(err.message || "Something went wrong. Please try again.");
     }
   };
 

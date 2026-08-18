@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { useSettings } from "../context/SettingsContext";
+import { resetConsent } from "../utils/cookieConsent";
 
 const Footer = () => {
   const { settings } = useSettings();
@@ -171,6 +172,17 @@ const Footer = () => {
           <Link to="/faq" className="hover:text-[#F4C542]">
             FAQ
           </Link>
+          &nbsp;|&nbsp;
+          {/* Withdrawing consent has to be as easy as giving it, so the banner
+              needs a way back. resetConsent() clears the stored choice, which
+              CookieConsent listens for and reopens on. */}
+          <button
+            type="button"
+            onClick={resetConsent}
+            className="hover:text-[#F4C542] underline-offset-2 hover:underline"
+          >
+            Cookie settings
+          </button>
         </div>
       </div>
     </footer>

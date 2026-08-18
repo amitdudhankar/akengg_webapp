@@ -64,6 +64,15 @@ try {
       // keep only the LAST <title> and the last of each meta[name]/meta[property]/
       // canonical — i.e. the page-specific ones React rendered.
       await page.evaluate(() => {
+        // Per-visitor UI that must never be frozen into the static HTML. The
+        // cookie banner decides from localStorage inside an effect, which is
+        // empty here — so at capture time it is showing. Left in, everyone who
+        // had already accepted would see it flash before React hydrated, and
+        // its copy would be indexed as part of every page.
+        document
+          .querySelectorAll("[data-cookie-consent]")
+          .forEach((element) => element.remove());
+
         const head = document.head;
         const titles = [...head.querySelectorAll("title")];
         titles.slice(0, -1).forEach((t) => t.remove());

@@ -58,6 +58,25 @@ const PrivacyPolicy = () => {
             </p>
           </section>
 
+          {/* Keep this in sync with src/utils/cookieConsent.js — if an
+              analytics tag is ever added, the categories described here and the
+              ones the banner asks about have to match. */}
+          <section>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Cookies</h2>
+            <p>
+              We use only the storage strictly necessary to make this website
+              work, such as remembering your cookie choice itself. We do not
+              currently run advertising or third-party tracking cookies.
+            </p>
+            <p className="mt-3">
+              If we add analytics to understand how the site is used, it will
+              only run after you accept it on the cookie banner. You can change
+              your mind at any time using the{" "}
+              <span className="font-medium">Cookie settings</span> link at the
+              bottom of any page.
+            </p>
+          </section>
+
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Contact</h2>
             <p>
