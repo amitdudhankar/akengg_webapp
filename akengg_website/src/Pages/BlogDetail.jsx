@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { getBlogById } from "../api/api";
 import Seo from "../Components/Seo";
 import JsonLd from "../Components/JsonLd";
+import { toSafeHtml, toExcerpt } from "../utils/blogContent";
 
 // Fallback post used when the fetch fails or returns null (preserves the
 // original hardcoded content so the page never renders blank).
@@ -50,6 +51,9 @@ const BlogDetail = () => {
                 })
               : "",
             content: d.content || d.descrip || "",
+            // Plain-text summary — a better meta description than the article
+            // body, which is HTML.
+            descrip: d.descrip || "",
           });
         }
       })
@@ -93,11 +97,13 @@ const BlogDetail = () => {
     );
   }
 
-  // Per-post meta description derived from the article body (collapsed +
-  // truncated) — avoids every blog sharing the generic site description.
-  const excerpt = post.content
-    ? post.content.replace(/\s+/g, " ").trim().slice(0, 155)
-    : undefined;
+  // Per-post meta description — avoids every blog sharing the generic site
+  // description. Prefer the plain-text summary; fall back to the article body
+  // with its markup stripped (raw tags must never reach a meta tag).
+  const excerpt = toExcerpt(post.descrip) || toExcerpt(post.content);
+
+  // Sanitized HTML for the article body (see utils/blogContent.js).
+  const contentHtml = toSafeHtml(post.content);
 
   return (
     <section className="bg-[#1c1f26] text-white py-16">
@@ -148,12 +154,12 @@ const BlogDetail = () => {
           />
         </div>
 
-        {/* Content */}
-        <div className="space-y-6 text-gray-300 leading-relaxed text-[15px] sm:text-[16px]">
-          {post.content.split("\n").map((para, index) => (
-            <p key={index}>{para}</p>
-          ))}
-        </div>
+        {/* Content — rich HTML from the admin editor, sanitized before it is
+            injected. Styling lives in the .blog-content rules in index.css. */}
+        <div
+          className="blog-content text-[15px] sm:text-[16px]"
+          dangerouslySetInnerHTML={{ __html: contentHtml }}
+        />
 
         {/* CTA */}
         <div className="mt-12 border-t border-gray-700 pt-8 text-center">
