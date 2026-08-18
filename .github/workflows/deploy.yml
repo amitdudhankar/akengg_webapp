@@ -17,19 +17,38 @@ jobs:
         with:
           node-version: '20'
 
+      # NOTE: Vite inlines these at BUILD time, and the variable name must match
+      # exactly what the source reads (import.meta.env.VITE_API_BASE_URL).
+      # A mismatched name does not error — it silently falls back to the
+      # localhost default baked into src/api/api.js, which points every
+      # visitor's browser at their own machine.
       - name: Build website
         run: |
           cd akengg_website
-          echo "VITE_API_URL=https://api.akengg.in/api/v1" > .env
+          cat > .env <<'EOF'
+          VITE_API_BASE_URL=https://api.akengg.in/api/v1
+          VITE_SITE_URL=https://www.akengg.in
+          EOF
           npm install
           npm run build
+          # Fail the deploy rather than ship a bundle pointing at localhost.
+          if grep -rq "localhost:8080" dist/assets; then
+            echo "::error::Built website bundle still references localhost:8080 — VITE_API_BASE_URL was not applied."
+            exit 1
+          fi
 
       - name: Build admin panel
         run: |
           cd akengg_adminPanel
-          echo "VITE_API_URL=https://api.akengg.in/api/v1" > .env
+          cat > .env <<'EOF'
+          VITE_API_BASE_URL=https://api.akengg.in/api/v1
+          EOF
           npm install
           npm run build
+          if grep -rq "localhost:8080" dist/assets; then
+            echo "::error::Built admin bundle still references localhost:8080 — VITE_API_BASE_URL was not applied."
+            exit 1
+          fi
 
       - name: Deploy backend code + install deps on server
         uses: appleboy/ssh-action@v1.0.3
