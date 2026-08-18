@@ -326,11 +326,97 @@ const documentEmail = ({ doc, title, message }) => {
   };
 };
 
+/**
+ * One-time code for the admin-panel password reset.
+ *
+ * @param {Object} params
+ * @param {string} params.otp             the 6-digit code (plain, for the email only)
+ * @param {number} params.expiresInMinutes
+ * @param {string} [params.name]          recipient's name, if known
+ */
+const passwordResetOtp = ({ otp, expiresInMinutes, name }) => {
+  const firstName = String(name || "").trim().split(/\s+/)[0];
+
+  const bodyHtml =
+    paragraph(`Hi ${esc(firstName || "there")},`) +
+    paragraph(
+      `Use the code below to reset your ${esc(companyName())} admin password.`
+    ) +
+    `<div style="margin:0 0 20px;padding:18px;background-color:${BRAND.surface};border:1px solid ${BRAND.border};border-radius:8px;text-align:center;">
+       <div style="font-size:32px;font-weight:700;letter-spacing:8px;color:${BRAND.ink};font-family:'Courier New',Courier,monospace;">${esc(otp)}</div>
+       <div style="margin-top:8px;font-size:13px;color:${BRAND.muted};">This code expires in ${esc(expiresInMinutes)} minutes.</div>
+     </div>` +
+    paragraph(
+      "If you did not request a password reset, you can safely ignore this email — your password will not change. Do not share this code with anyone."
+    );
+
+  const text = [
+    `Hi ${firstName || "there"},`,
+    "",
+    `Use this code to reset your ${companyName()} admin password:`,
+    "",
+    `    ${otp}`,
+    "",
+    `The code expires in ${expiresInMinutes} minutes.`,
+    "",
+    "If you did not request a password reset, you can safely ignore this email — your password will not change. Do not share this code with anyone.",
+  ].join("\n");
+
+  return {
+    subject: `Your password reset code: ${otp}`,
+    html: layout({
+      heading: "Reset your password",
+      preheader: `Your code is ${otp} — expires in ${expiresInMinutes} minutes.`,
+      bodyHtml,
+    }),
+    text,
+  };
+};
+
+/**
+ * Sent after a password is actually changed, so an account takeover cannot
+ * happen silently.
+ * @param {Object} params
+ * @param {string} [params.name]
+ */
+const passwordChanged = ({ name } = {}) => {
+  const firstName = String(name || "").trim().split(/\s+/)[0];
+
+  const bodyHtml =
+    paragraph(`Hi ${esc(firstName || "there")},`) +
+    paragraph(
+      `The password for your ${esc(companyName())} admin account was just changed.`
+    ) +
+    paragraph(
+      "If this was you, nothing further is needed. <strong>If it was not, contact your administrator immediately</strong> — someone else may have access to your account."
+    );
+
+  const text = [
+    `Hi ${firstName || "there"},`,
+    "",
+    `The password for your ${companyName()} admin account was just changed.`,
+    "",
+    "If this was you, nothing further is needed. If it was not, contact your administrator immediately — someone else may have access to your account.",
+  ].join("\n");
+
+  return {
+    subject: `Your ${companyName()} password was changed`,
+    html: layout({
+      heading: "Your password was changed",
+      preheader: "If this wasn't you, contact your administrator immediately.",
+      bodyHtml,
+    }),
+    text,
+  };
+};
+
 module.exports = {
   contactNotification,
   contactAutoReply,
   newsletterWelcome,
   documentEmail,
+  passwordResetOtp,
+  passwordChanged,
   // exported for tests
   esc,
   formatMoney,

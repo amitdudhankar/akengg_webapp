@@ -37,12 +37,15 @@ export const fetchContactById = (id) => api.get(`/contacts/${id}`);
 export const updateContact = (id, payload) => api.put(`/contacts/${id}`, payload);
 export const deleteContact = (id) => api.delete(`/contacts/${id}`);
 
-// Forgot Password APIs
+// Forgot Password APIs (3 steps).
+// verify-otp returns { data: { resetToken } }; that token MUST be passed to
+// reset-password — the server will not change a password from an email address
+// alone, otherwise anyone could reset any account.
 export const sendEmailOTP = (payload) => api.post("/users/send-otp", payload);
 export const verifyEmailOTP = (payload) =>
   api.post("/users/verify-otp", payload);
-export const resetUserPassword = (payload) =>
-  api.post("/users/reset-password", payload);
+export const resetUserPassword = ({ token, newPassword }) =>
+  api.post("/users/reset-password", { token, newPassword });
 
 // Blogs API
 export const addBlog = (formData) =>

@@ -7,7 +7,11 @@ const {
   validateCreateUser,
   validateUpdateUser,
   validateLogin,
+  validateForgotPasswordRequest,
+  validateVerifyOtp,
+  validateResetPassword,
 } = require("../middlewares/validateUser");
+const { createRateLimiter } = require("../middlewares/rateLimit");
 const {
   verifyToken,
   attachUserIfTokenPresent,
@@ -19,6 +23,44 @@ const {
 const router = express.Router();
 
 router.post("/login", validateLogin, asyncHandler(userController.loginUser));
+
+// ── Forgot password (public, unauthenticated) ───────────────────────────────
+// Rate limited per IP on top of the per-row attempt cap in
+// passwordReset.service: the limiter slows a single attacker, the row counter
+// stops one who rotates IPs. Sending is the tightest limit because each call
+// costs an email.
+const otpRequestLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many reset requests. Please try again in a few minutes.",
+});
+
+const otpVerifyLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: "Too many attempts. Please try again in a few minutes.",
+});
+
+router.post(
+  "/send-otp",
+  otpRequestLimiter,
+  validateForgotPasswordRequest,
+  asyncHandler(userController.sendPasswordOtp)
+);
+
+router.post(
+  "/verify-otp",
+  otpVerifyLimiter,
+  validateVerifyOtp,
+  asyncHandler(userController.verifyPasswordOtp)
+);
+
+router.post(
+  "/reset-password",
+  otpVerifyLimiter,
+  validateResetPassword,
+  asyncHandler(userController.resetPassword)
+);
 
 router.get("/", verifyToken, authorizeRoles("admin"), asyncHandler(userController.getUsers));
 router.get("/:id", verifyToken, validateUserId, authorizeSelfOrRoles("admin"), asyncHandler(userController.getUserById));

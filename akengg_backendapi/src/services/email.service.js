@@ -107,6 +107,51 @@ const sendNewsletterWelcome = async (email) => {
   });
 };
 
+// ── Password reset ──────────────────────────────────────────────────────────
+
+/**
+ * Deliver a one-time reset code. AWAITED and allowed to throw, unlike the other
+ * courtesy mail here: if this email does not arrive the user simply cannot
+ * proceed, so a silent failure would strand them.
+ *
+ * @param {Object} params
+ * @param {string} params.to
+ * @param {string} params.otp
+ * @param {number} params.expiresInMinutes
+ * @param {string} [params.name]
+ */
+const sendPasswordResetOtp = async ({ to, otp, expiresInMinutes, name }) => {
+  const { subject, html, text } = templates.passwordResetOtp({
+    otp,
+    expiresInMinutes,
+    name,
+  });
+
+  return mailer.sendMail({
+    to,
+    subject,
+    html,
+    text,
+    ...(process.env.MAIL_REPLY_TO && { replyTo: process.env.MAIL_REPLY_TO }),
+  });
+};
+
+/**
+ * Tell the account owner their password changed, so a takeover is not silent.
+ * Fire-and-forget — the password is already updated.
+ */
+const sendPasswordChangedNotice = async ({ to, name }) => {
+  const { subject, html, text } = templates.passwordChanged({ name });
+
+  return mailer.sendMailSafe({
+    to,
+    subject,
+    html,
+    text,
+    ...(process.env.MAIL_REPLY_TO && { replyTo: process.env.MAIL_REPLY_TO }),
+  });
+};
+
 // ── Documents ───────────────────────────────────────────────────────────────
 
 const loadDocumentRow = async (documentId) => {
@@ -226,5 +271,7 @@ module.exports = {
   sendContactNotification,
   sendContactAutoReply,
   sendNewsletterWelcome,
+  sendPasswordResetOtp,
+  sendPasswordChangedNotice,
   sendDocumentEmail,
 };

@@ -83,6 +83,58 @@ const validatePassword = (password, isRequired = false) => {
   }
 };
 
+// ── Forgot-password flow ───────────────────────────────────────────────────
+// Syntactic checks only. Whether the address has an account, whether the code
+// is right, and whether the token is valid are decided in
+// passwordReset.service — deliberately, so this layer cannot leak which of
+// those failed.
+
+const validateForgotPasswordRequest = (req, res, next) => {
+  try {
+    validateRequestBody(req.body);
+    validateEmail(req.body.email, true);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+const validateVerifyOtp = (req, res, next) => {
+  try {
+    validateRequestBody(req.body);
+    validateEmail(req.body.email, true);
+
+    const otp = normalizeString(req.body.otp);
+    if (!otp || typeof otp !== "string" || !/^[0-9]{4,8}$/.test(otp)) {
+      throw new AppError("A valid OTP is required", 400);
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+const validateResetPassword = (req, res, next) => {
+  try {
+    validateRequestBody(req.body);
+
+    const token = normalizeString(req.body.token);
+    if (!token || typeof token !== "string") {
+      throw new AppError(
+        "A verified reset token is required. Start the reset again.",
+        401
+      );
+    }
+
+    validatePassword(req.body.newPassword, true);
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 const validatePhone = (phone) => {
   const normalizedPhone = normalizeString(phone);
 
@@ -188,4 +240,7 @@ module.exports = {
   validateCreateUser,
   validateUpdateUser,
   validateLogin,
+  validateForgotPasswordRequest,
+  validateVerifyOtp,
+  validateResetPassword,
 };

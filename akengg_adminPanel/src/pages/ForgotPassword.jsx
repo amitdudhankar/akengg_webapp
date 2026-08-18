@@ -10,6 +10,9 @@ const ForgotPassword = () => {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Proof that step 2 succeeded. The server requires it in step 3, so the OTP
+  // check cannot be skipped by calling reset-password directly.
+  const [resetToken, setResetToken] = useState("");
 
   const sendOtp = async () => {
     if (!email) return toast.error("Please enter your email.");
@@ -34,6 +37,13 @@ const ForgotPassword = () => {
     try {
       const response = await verifyEmailOTP({ email, otp });
       toast.dismiss(loadingToastId); // Dismiss loading
+
+      const token = response.data?.data?.resetToken;
+      if (!token) {
+        throw new Error("No reset token returned by the server.");
+      }
+
+      setResetToken(token);
       toast.success(response.data.message || "OTP verified successfully.");
       setStep(3);
     } catch (err) {
@@ -50,8 +60,18 @@ const ForgotPassword = () => {
       return toast.error("Please enter both password fields.");
     if (newPassword !== confirmPassword)
       return toast.error("Passwords do not match.");
+    if (!resetToken)
+      return toast.error("Your reset session expired. Please start again.");
+    // Mirrors the server rule so the user gets the message before a round trip.
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,64}$/.test(newPassword))
+      return toast.error(
+        "Password must be 8 to 64 characters and include uppercase, lowercase, and a number."
+      );
     try {
-      const response = await resetUserPassword({ email, newPassword });
+      const response = await resetUserPassword({
+        token: resetToken,
+        newPassword,
+      });
       toast.success(response.data.message || "Password reset successful.");
 
       // Show loading toast

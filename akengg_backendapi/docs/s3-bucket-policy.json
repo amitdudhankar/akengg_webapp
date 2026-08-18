@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Id": "AkenggPublicWebsiteAssets",
+  "Statement": [
+    {
+      "Sid": "PublicReadWebsiteImagePrefixesOnly",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::akengg-bucket-015290340208-ap-south-1-an/blogs/*",
+        "arn:aws:s3:::akengg-bucket-015290340208-ap-south-1-an/services/*",
+        "arn:aws:s3:::akengg-bucket-015290340208-ap-south-1-an/projects/*",
+        "arn:aws:s3:::akengg-bucket-015290340208-ap-south-1-an/team/*"
+      ]
+    }
+  ]
+}
