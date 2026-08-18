@@ -92,10 +92,10 @@ const Contact = () => {
               <p>
                 <strong>Email:</strong>{" "}
                 <a
-                  href={`mailto:${settings?.company_email || "kiran.dudhankar@akengg.in"}`}
+                  href={`mailto:${settings?.company_email || "akengineering73@gmail.com"}`}
                   className="underline"
                 >
-                  {settings?.company_email || "kiran.dudhankar@akengg.in"}
+                  {settings?.company_email || "akengineering73@gmail.com"}
                 </a>
               </p>
 

@@ -14,7 +14,7 @@ export const SITE = {
   description:
     "A K Engineering — turnkey IBR & non-IBR boiler systems, industrial fabrication, water treatment and pollution-control solutions for pharma, chemical, food, textile, power and automotive industries.",
   phone: "+91 9822845408",
-  email: "kiran.dudhankar@akengg.in",
+  email: "akengineering73@gmail.com",
   address: {
     street: "Sai Shraddha Bungalow Society, Pisoli",
     city: "Pune",

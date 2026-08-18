@@ -7,7 +7,7 @@ const Footer = () => {
   const { settings } = useSettings();
 
   const phone = settings?.company_phone || "+91 9822845408";
-  const email = settings?.company_email || "kiran.dudhankar@akengg.in";
+  const email = settings?.company_email || "akengineering73@gmail.com";
   const address =
     settings?.company_address ||
     "A K Engineering, Sai Shraddha Bungalow Society, near KUMAR PALMCREST, Anthon Nagar, Pisoli, Pune, Maharashtra 411060";
