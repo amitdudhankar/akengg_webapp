@@ -11,6 +11,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Full history: scripts/generate-sitemap.mjs derives each static page's
+          # <lastmod> from the last commit that touched its source. The default
+          # shallow clone has no such history, so dates would be silently dropped.
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -30,10 +35,16 @@ jobs:
           VITE_SITE_URL=https://www.akengg.in
           EOF
           npm install
-          # build:seo = vite build + scripts/prerender.mjs, which renders each
-          # static route with headless Chromium and writes real HTML (title,
-          # meta, canonical, JSON-LD, content). Plain `npm run build` ships an
-          # empty #root shell, so crawlers and social scrapers see nothing.
+          # build:seo = generate-sitemap + vite build + prerender.
+          # generate-sitemap.mjs rebuilds public/sitemap.xml from the live blog
+          # list before the build copies public/ into dist/. It only WARNS if the
+          # API is unreachable (the sitemap then ships without blog URLs) so an
+          # API outage cannot block a recovery deploy — add --strict to the
+          # script call if you would rather fail the build in that case.
+          # prerender.mjs then renders each static route with headless Chromium
+          # and writes real HTML (title, meta, canonical, JSON-LD, content).
+          # Plain `npm run build` ships an empty #root shell, so crawlers and
+          # social scrapers see nothing.
           npm run build:seo
           # Fail the deploy rather than ship a bundle pointing at localhost.
           if grep -rq "localhost:8080" dist/assets; then
@@ -46,6 +57,13 @@ jobs:
             echo "::error::dist/index.html has no <title> — the prerender step did not run."
             exit 1
           fi
+          # Fail rather than ship a sitemap Google cannot parse. The namespace
+          # host is sitemaps.org (plural); a typo there voids the whole file.
+          if ! grep -q 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' dist/sitemap.xml; then
+            echo "::error::dist/sitemap.xml is missing the correct sitemaps.org namespace."
+            exit 1
+          fi
+          echo "Sitemap URLs: $(grep -c '<loc>' dist/sitemap.xml)"
 
       - name: Build admin panel
         run: |
