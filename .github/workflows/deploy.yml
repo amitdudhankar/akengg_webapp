@@ -1,0 +1,73 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # lets you manually trigger a run from the Actions tab
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build website
+        run: |
+          cd akengg_website
+          echo "VITE_API_URL=https://api.akengg.in/api/v1" > .env
+          npm install
+          npm run build
+
+      - name: Build admin panel
+        run: |
+          cd akengg_adminPanel
+          echo "VITE_API_URL=https://api.akengg.in/api/v1" > .env
+          npm install
+          npm run build
+
+      - name: Deploy backend code + install deps on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/akengg_webapp
+            git pull origin main
+            cd akengg_backendapi
+            npm install --omit=dev
+
+      - name: Copy built frontend files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "akengg_website/dist/*,akengg_adminPanel/dist/*"
+          target: "/tmp/deploy"
+
+      - name: Finalize deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo rm -rf /var/www/html/website/*
+            sudo cp -r /tmp/deploy/akengg_website/dist/* /var/www/html/website/
+            sudo chown -R www-data:www-data /var/www/html/website
+
+            sudo rm -rf /var/www/html/admin/*
+            sudo cp -r /tmp/deploy/akengg_adminPanel/dist/* /var/www/html/admin/
+            sudo chown -R www-data:www-data /var/www/html/admin
+
+            pm2 restart backend || pm2 start ~/akengg_webapp/akengg_backendapi/src/server.js --name backend --cwd ~/akengg_webapp/akengg_backendapi
+            pm2 save
+
+            rm -rf /tmp/deploy
