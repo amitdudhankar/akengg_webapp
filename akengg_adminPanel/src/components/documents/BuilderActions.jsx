@@ -20,6 +20,7 @@ import {
   ArrowRightLeft,
   Ban,
   ChevronDown,
+  Mail,
 } from "lucide-react";
 
 const baseBtn =
@@ -104,6 +105,7 @@ function ConvertControl({ targets, onConvert, disabled }) {
  * @param {()=>void} [props.onDuplicate]
  * @param {(target:{slug:string,type:string,title:string})=>void} [props.onConvert]
  * @param {()=>void} [props.onCancel]
+ * @param {()=>void} [props.onEmail]  only rendered for finalized documents
  * @param {Array<{slug:string,type:string,title:string}>} [props.convertTargets]
  * @param {boolean} [props.isAdmin=false]
  * @param {boolean} [props.saving=false]
@@ -122,6 +124,7 @@ export default function BuilderActions({
   onDuplicate,
   onConvert,
   onCancel,
+  onEmail,
   convertTargets = [],
   isAdmin = false,
   saving = false,
@@ -231,6 +234,18 @@ export default function BuilderActions({
               </button>
             ) : null}
           </>
+        ) : null}
+
+        {onEmail && isFinalized ? (
+          <button
+            type="button"
+            onClick={onEmail}
+            disabled={busy}
+            className={`${baseBtn} border border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50`}
+          >
+            <Mail className="h-4 w-4" />
+            Email
+          </button>
         ) : null}
 
         {onDownloadPdf ? (

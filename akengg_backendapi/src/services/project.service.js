@@ -54,7 +54,8 @@ const sanitizeProjectInput = (payload) => {
   return cleanPayload;
 };
 
-const mapProject = (project) => {
+// async: assetUrl presigns under the s3 driver.
+const mapProject = async (project) => {
   if (!project) {
     return null;
   }
@@ -64,7 +65,7 @@ const mapProject = (project) => {
     industry: project.industry,
     description: project.description,
     features: parseFeatures(project.features),
-    image: assetUrl(project.image),
+    image: await assetUrl(project.image),
     sort_order: project.sort_order,
     created_at: project.created_at ?? null,
     updated_at: project.updated_at ?? null,
@@ -75,7 +76,7 @@ const getProjects = async () => {
   const rows = await query(
     `SELECT ${SELECT_COLUMNS} FROM projects ORDER BY sort_order ASC, id ASC`
   );
-  return rows.map(mapProject);
+  return Promise.all(rows.map(mapProject));
 };
 
 const getProjectById = async (id) => {

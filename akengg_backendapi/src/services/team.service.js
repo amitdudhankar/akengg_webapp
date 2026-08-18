@@ -18,7 +18,8 @@ const sanitizeInput = (payload) => {
   return cleanPayload;
 };
 
-const mapMember = (member) => {
+// async: assetUrl presigns under the s3 driver.
+const mapMember = async (member) => {
   if (!member) {
     return null;
   }
@@ -28,7 +29,7 @@ const mapMember = (member) => {
     title: member.title ?? null,
     subtitle: member.subtitle ?? null,
     description: member.description ?? null,
-    image: assetUrl(member.image),
+    image: await assetUrl(member.image),
     sort_order: member.sort_order,
     created_at: member.created_at ?? null,
     updated_at: member.updated_at ?? null,
@@ -39,7 +40,7 @@ const getTeamMembers = async () => {
   const rows = await query(
     `SELECT ${SELECT_COLUMNS} FROM team_members ORDER BY sort_order ASC, id ASC`
   );
-  return rows.map(mapMember);
+  return Promise.all(rows.map(mapMember));
 };
 
 const getTeamMemberById = async (id) => {

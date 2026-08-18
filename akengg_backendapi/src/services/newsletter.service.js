@@ -1,5 +1,6 @@
 const query = require("../utils/db");
 const AppError = require("../utils/appError");
+const emailService = require("./email.service");
 
 const SELECT_COLUMNS = "id, email, status, created_at, updated_at";
 
@@ -31,6 +32,18 @@ const getSubscribers = async () => {
   return rows.map(mapSubscriber);
 };
 
+// Welcome the subscriber over SMTP. Fire-and-forget: the row is already
+// committed, so a mail failure must not turn a successful signup into an error
+// response. sendNewsletterWelcome swallows transport errors; .catch() guards
+// anything else.
+const announceSubscription = (email) => {
+  emailService
+    .sendNewsletterWelcome(email)
+    .catch((error) =>
+      console.error("[newsletter] welcome email failed:", error.message)
+    );
+};
+
 const subscribe = async (payload) => {
   const email = String(payload.email || "").trim().toLowerCase();
 
@@ -45,7 +58,10 @@ const subscribe = async (payload) => {
          WHERE id = ?`,
         [existing.id]
       );
+      // Genuine re-subscribe → welcome them back.
+      announceSubscription(email);
     }
+    // Already subscribed: stay silent so repeat form submits don't spam.
     return mapSubscriber(await getSubscriberByEmail(email));
   }
 
@@ -53,6 +69,8 @@ const subscribe = async (payload) => {
     `INSERT INTO newsletter_subscribers (email, status) VALUES (?, 'subscribed')`,
     [email]
   );
+
+  announceSubscription(email);
 
   return mapSubscriber(await getSubscriberByEmail(email));
 };

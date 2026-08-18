@@ -163,3 +163,8 @@ export const duplicateDocument = (id) => api.post(`/documents/${id}/duplicate`);
 export const convertDocument = (id, targetType) =>
   api.post(`/documents/${id}/convert`, { target_type: targetType });
 export const cancelDocument = (id) => api.post(`/documents/${id}/cancel`);
+// Email a FINALIZED document to the party with the PDF attached. Every field
+// in the payload is optional: {} sends to the party's stored email under a
+// server-generated subject.
+export const emailDocument = (id, payload = {}) =>
+  api.post(`/documents/${id}/email`, payload);

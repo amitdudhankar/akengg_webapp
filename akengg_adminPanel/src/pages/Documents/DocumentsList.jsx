@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Copy,
   Ban,
+  Mail,
 } from "lucide-react";
 import {
   fetchDocuments,
@@ -18,9 +19,11 @@ import {
   downloadDocumentDocx,
   duplicateDocument,
   cancelDocument,
+  emailDocument,
 } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import EmailDocumentModal from "../../components/documents/EmailDocumentModal";
 import { formatINR } from "../../utils/money";
 import { DOC_TYPES, TYPE_LABELS, TYPE_TO_SLUG } from "../../config/docConfig";
 import { useAuth } from "../../context/AuthContext";
@@ -54,6 +57,9 @@ function DocumentsList() {
   // Cancel-confirm modal (separate from the delete modal).
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelChecked, setCancelChecked] = useState(false);
+  // Email-compose modal.
+  const [emailTarget, setEmailTarget] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Close the "New Document" dropdown on any outside click.
   useEffect(() => {
@@ -206,6 +212,27 @@ function DocumentsList() {
       );
     } finally {
       setActionBusyId(null);
+    }
+  };
+
+  // Email a finalized document (PDF attached server-side). The modal stays open
+  // on failure so the user can fix the address and retry.
+  const handleSendEmail = async (payload) => {
+    if (!emailTarget?.id) return;
+    setIsSendingEmail(true);
+    const loadingToast = toast.loading("Sending email...");
+    try {
+      const res = await emailDocument(emailTarget.id, payload);
+      toast.success(res?.data?.message || "Document emailed", {
+        id: loadingToast,
+      });
+      setEmailTarget(null);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to send email", {
+        id: loadingToast,
+      });
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -404,6 +431,18 @@ function DocumentsList() {
                         >
                           <Copy className="cursor-pointer text-gray-600 hover:text-gray-800" />
                         </button>
+                        {doc.status === "finalized" ? (
+                          <button
+                            type="button"
+                            aria-label="Email document"
+                            title="Email to party"
+                            disabled={rowBusy}
+                            onClick={() => setEmailTarget(doc)}
+                            className="disabled:opacity-50"
+                          >
+                            <Mail className="cursor-pointer text-emerald-600 hover:text-emerald-800" />
+                          </button>
+                        ) : null}
                         {doc.status === "finalized" && isAdmin ? (
                           <button
                             type="button"
@@ -462,6 +501,14 @@ function DocumentsList() {
         confirmLabel="I understand this cannot be undone"
         isChecked={cancelChecked}
         setIsChecked={setCancelChecked}
+      />
+
+      <EmailDocumentModal
+        isOpen={Boolean(emailTarget)}
+        document={emailTarget}
+        isSending={isSendingEmail}
+        onClose={() => setEmailTarget(null)}
+        onSend={handleSendEmail}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

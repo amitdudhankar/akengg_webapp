@@ -54,7 +54,8 @@ const sanitizeServiceInput = (payload) => {
   return cleanPayload;
 };
 
-const mapService = (service) => {
+// async: assetUrl presigns under the s3 driver.
+const mapService = async (service) => {
   if (!service) {
     return null;
   }
@@ -63,7 +64,7 @@ const mapService = (service) => {
     title: service.title,
     description: service.description,
     details: service.details ?? null,
-    image: assetUrl(service.image),
+    image: await assetUrl(service.image),
     features: parseFeatures(service.features),
     icon: service.icon ?? null,
     gradient: service.gradient ?? null,
@@ -77,7 +78,7 @@ const getServices = async () => {
   const rows = await query(
     `SELECT ${SELECT_COLUMNS} FROM services ORDER BY sort_order ASC, id ASC`
   );
-  return rows.map(mapService);
+  return Promise.all(rows.map(mapService));
 };
 
 const getServiceById = async (id) => {

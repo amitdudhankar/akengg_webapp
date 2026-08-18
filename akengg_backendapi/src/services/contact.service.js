@@ -1,5 +1,6 @@
 const query = require("../utils/db");
 const AppError = require("../utils/appError");
+const emailService = require("./email.service");
 
 const CONTACT_COLUMNS = [
   "id",
@@ -105,7 +106,24 @@ const createContact = async (payload) => {
     ]
   );
 
-  return getContactById(result.insertId);
+  const contact = await getContactById(result.insertId);
+
+  // Fire-and-forget. The enquiry is already committed and the caller is about
+  // to get a 201 — waiting on SMTP would add seconds to a public form submit,
+  // and a mail outage must never turn a saved enquiry into an error. Both
+  // helpers use sendMailSafe internally; .catch() guards everything else.
+  emailService
+    .sendContactNotification(contact)
+    .catch((error) =>
+      console.error("[contact] admin notification failed:", error.message)
+    );
+  emailService
+    .sendContactAutoReply(contact)
+    .catch((error) =>
+      console.error("[contact] auto-reply failed:", error.message)
+    );
+
+  return contact;
 };
 
 const updateContact = async (id, payload) => {

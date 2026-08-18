@@ -3,6 +3,9 @@ const path = require("path");
 
 const query = require("../utils/db");
 const AppError = require("../utils/appError");
+const { keyFromFile, assetUrl, deleteAsset } = require("../utils/storage");
+
+const STORAGE_FOLDER = "blogs";
 
 const BLOG_COLUMNS = [
   "id",
@@ -31,19 +34,34 @@ const sanitizeBlogInput = (payload) => {
   return cleanPayload;
 };
 
-const buildImageUrl = (imageName) => {
-  if (!imageName) {
+// Blogs predate the storage layer, so two shapes live in blogs.image:
+//   legacy — a BARE filename ("172...-photo.jpg"); the file sits in
+//            src/public/blog_images and is served at /blog-images
+//   current — a storage KEY ("blogs/172...-photo.jpg") handled by the storage
+//            driver (local disk or S3, per STORAGE_DRIVER)
+// The "/" is what tells them apart, so old rows keep working untouched and no
+// database migration is needed. Legacy rows convert themselves the next time
+// their image is replaced.
+const isLegacyImage = (image) => Boolean(image) && !image.includes("/");
+
+const buildImageUrl = async (image) => {
+  if (!image) {
     return null;
   }
 
-  const baseUrl =
-    process.env.PUBLIC_BASE_URL ||
-    `http://localhost:${process.env.PORT || 8080}`;
+  if (isLegacyImage(image)) {
+    const baseUrl =
+      process.env.PUBLIC_BASE_URL ||
+      `http://localhost:${process.env.PORT || 8080}`;
 
-  return `${baseUrl}/blog-images/${imageName}`;
+    return `${baseUrl}/blog-images/${image}`;
+  }
+
+  return assetUrl(image);
 };
 
-const mapBlog = (blog) => {
+// async: assetUrl presigns under the s3 driver.
+const mapBlog = async (blog) => {
   if (!blog) {
     return null;
   }
@@ -53,8 +71,17 @@ const mapBlog = (blog) => {
     return accumulator;
   }, {});
 
-  mappedBlog.image = buildImageUrl(blog.image);
+  mappedBlog.image = await buildImageUrl(blog.image);
   return mappedBlog;
+};
+
+// The raw stored value (legacy filename or storage key), not the public URL.
+const getRawImageKey = async (id) => {
+  const rows = await query("SELECT image FROM blogs WHERE id = ?", [id]);
+  if (!rows.length) {
+    throw new AppError("Blog not found", 404);
+  }
+  return rows[0].image;
 };
 
 const createSlug = (title) => {
@@ -121,7 +148,7 @@ const getBlogs = async ({ page = 1, limit = 10, search = "" } = {}) => {
   );
 
   return {
-    blogs: blogRows.map(mapBlog),
+    blogs: await Promise.all(blogRows.map(mapBlog)),
     page: parsedPage,
     limit: parsedLimit,
     totalItems,
@@ -144,20 +171,27 @@ const getBlogById = async (id) => {
   return mapBlog(rows[0]);
 };
 
-const removeBlogImage = async (imageName) => {
-  if (!imageName) {
+const removeBlogImage = async (image) => {
+  if (!image) {
     return;
   }
 
-  const imagePath = path.join(blogImagesDirectory, imageName);
+  // Legacy rows still point at a plain file under src/public/blog_images,
+  // which the storage layer knows nothing about.
+  if (isLegacyImage(image)) {
+    const imagePath = path.join(blogImagesDirectory, image);
 
-  try {
-    await fs.promises.unlink(imagePath);
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      throw error;
+    try {
+      await fs.promises.unlink(imagePath);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
     }
+    return;
   }
+
+  await deleteAsset(image);
 };
 
 const createBlog = async (payload, file) => {
@@ -172,7 +206,7 @@ const createBlog = async (payload, file) => {
       slug,
       cleanPayload.descrip,
       cleanPayload.content,
-      file.filename,
+      keyFromFile(STORAGE_FOLDER, file),
     ]
   );
 
@@ -180,7 +214,7 @@ const createBlog = async (payload, file) => {
 };
 
 const updateBlog = async (id, payload, file) => {
-  const existingBlog = await getBlogById(id);
+  const oldImageKey = await getRawImageKey(id); // also asserts existence
   const cleanPayload = sanitizeBlogInput(payload);
   const fields = [];
   const values = [];
@@ -196,7 +230,7 @@ const updateBlog = async (id, payload, file) => {
 
   if (file) {
     fields.push("image = ?");
-    values.push(file.filename);
+    values.push(keyFromFile(STORAGE_FOLDER, file));
   }
 
   values.push(id);
@@ -208,20 +242,20 @@ const updateBlog = async (id, payload, file) => {
     values
   );
 
-  if (file && existingBlog.image) {
-    await removeBlogImage(path.basename(existingBlog.image));
+  if (file && oldImageKey) {
+    await removeBlogImage(oldImageKey);
   }
 
   return getBlogById(id);
 };
 
 const deleteBlog = async (id) => {
-  const existingBlog = await getBlogById(id);
+  const oldImageKey = await getRawImageKey(id); // also asserts existence
 
   await query("DELETE FROM blogs WHERE id = ?", [id]);
 
-  if (existingBlog.image) {
-    await removeBlogImage(path.basename(existingBlog.image));
+  if (oldImageKey) {
+    await removeBlogImage(oldImageKey);
   }
 };
 

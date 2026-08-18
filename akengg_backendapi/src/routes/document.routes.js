@@ -14,6 +14,7 @@ const {
   validateUpdate,
   validateDocumentId,
   validateConvert,
+  validateDocumentEmail,
   validateNextNumberQuery,
   validateListQuery,
 } = require("../middlewares/validateDocument");
@@ -91,6 +92,17 @@ router.post(
   authorizeRoles("admin", "employee"),
   validateDocumentId,
   asyncHandler(documentController.reExportDocumentPdf)
+);
+
+// Email the finalized document (PDF attached) to the party. Same audience as
+// re-export: an employee who can issue a document can also send it.
+router.post(
+  "/:id/email",
+  verifyToken,
+  authorizeRoles("admin", "employee"),
+  validateDocumentId,
+  validateDocumentEmail,
+  asyncHandler(documentController.emailDocument)
 );
 
 // Lifecycle (Phase 3): duplicate/convert clone into a new draft (admin+employee);

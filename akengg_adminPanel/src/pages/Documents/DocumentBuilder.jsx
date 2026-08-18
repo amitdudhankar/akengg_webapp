@@ -13,6 +13,7 @@ import {
   duplicateDocument,
   convertDocument,
   cancelDocument,
+  emailDocument,
 } from "../../api/api";
 import {
   getDocConfig,
@@ -26,6 +27,7 @@ import DocumentMeta from "../../components/documents/DocumentMeta";
 import LineItemsEditor, { emptyLine } from "../../components/documents/LineItemsEditor";
 import TotalsPanel from "../../components/documents/TotalsPanel";
 import BuilderActions from "../../components/documents/BuilderActions";
+import EmailDocumentModal from "../../components/documents/EmailDocumentModal";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
 import useDocumentTotals from "../../hooks/useDocumentTotals";
 import { getTodayDateInputValue, toDateInputValue } from "../../utils/date";
@@ -124,6 +126,8 @@ export default function DocumentBuilder() {
   const [convertedFrom, setConvertedFrom] = useState(null); // { id, number, type }
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelChecked, setCancelChecked] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const finalized = status === "finalized";
   const cancelled = status === "cancelled";
@@ -491,6 +495,27 @@ export default function DocumentBuilder() {
     }
   };
 
+  // Email the finalized document to the party (PDF attached server-side). The
+  // modal stays open on failure so the address can be corrected and retried.
+  const handleSendEmail = async (payload) => {
+    if (!savedId) return;
+    setSendingEmail(true);
+    const loadingToast = toast.loading("Sending email...");
+    try {
+      const res = await emailDocument(savedId, payload);
+      toast.success(res?.data?.message || "Document emailed", {
+        id: loadingToast,
+      });
+      setEmailOpen(false);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to send email", {
+        id: loadingToast,
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   // Advisory number preview before finalize (the backend issues the real one).
   const numberPreview = useMemo(() => {
     if (docNumber) return docNumber;
@@ -690,8 +715,23 @@ export default function DocumentBuilder() {
           onDuplicate={savedId ? handleDuplicate : undefined}
           onConvert={savedId && convertTargets.length ? handleConvert : undefined}
           onCancel={finalized && isAdmin ? () => setCancelOpen(true) : undefined}
+          onEmail={savedId ? () => setEmailOpen(true) : undefined}
         />
       </div>
+
+      <EmailDocumentModal
+        isOpen={emailOpen}
+        document={{
+          id: savedId,
+          doc_type: config.type,
+          doc_number: docNumber,
+          party_name: doc.party?.name,
+          party_email: doc.party?.email,
+        }}
+        isSending={sendingEmail}
+        onClose={() => setEmailOpen(false)}
+        onSend={handleSendEmail}
+      />
 
       <ConfirmDeleteModal
         isOpen={cancelOpen}

@@ -4,6 +4,7 @@
 // PDF streaming delegates to documentPdf.service (owned by the PDF agent).
 const documentService = require("../services/document.service");
 const documentPdfService = require("../services/documentPdf.service");
+const emailService = require("../services/email.service");
 
 const getDocuments = async (req, res) => {
   const result = await documentService.list(req.query);
@@ -151,6 +152,24 @@ const reExportDocumentPdf = async (req, res) => {
   });
 };
 
+// Email a finalized document to the party with the PDF attached. Every body
+// field is optional: {} sends to the party's stored email with a generated
+// subject. Awaited (unlike the contact-form mails) because the admin user is
+// waiting on the outcome.
+const emailDocument = async (req, res) => {
+  const result = await emailService.sendDocumentEmail(req.params.id, {
+    to: req.body?.to,
+    cc: req.body?.cc,
+    subject: req.body?.subject,
+    message: req.body?.message,
+  });
+
+  res.status(200).json({
+    message: `Document emailed to ${result.to.join(", ")}`,
+    data: result,
+  });
+};
+
 module.exports = {
   getDocuments,
   getNextNumber,
@@ -165,4 +184,5 @@ module.exports = {
   downloadDocumentPdf,
   downloadDocumentDocx,
   reExportDocumentPdf,
+  emailDocument,
 };

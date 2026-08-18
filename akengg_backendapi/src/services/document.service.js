@@ -544,10 +544,12 @@ const list = async ({
   const totalPages = Math.max(1, Math.ceil(totalItems / parsedLimit));
 
   const documentRows = await query(
+    // party_email is included so the list's "email this document" action can
+    // prefill the recipient without a second fetch.
     `SELECT id, doc_type, status, doc_number, financial_year, seq_no, doc_date,
-            due_date, party_id, party_name, party_gstin, supply_type,
-            tax_treatment, reverse_charge, total_taxable, total_tax,
-            grand_total, currency, pdf_key, created_at, updated_at
+            due_date, party_id, party_name, party_gstin, party_email,
+            supply_type, tax_treatment, reverse_charge, total_taxable,
+            total_tax, grand_total, currency, pdf_key, created_at, updated_at
      FROM documents
      ${whereClause}
      ORDER BY id DESC

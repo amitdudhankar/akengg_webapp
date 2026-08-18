@@ -41,16 +41,18 @@ const ensureRow = async () => {
 };
 
 // Keep the raw *_key columns and expose resolved public URLs alongside them.
-const mapRow = (row) => {
+// async: assetUrl presigns under the s3 driver.
+const mapRow = async (row) => {
   if (!row) {
     return null;
   }
 
-  return {
-    ...row,
-    logo: assetUrl(row.logo_key),
-    signature: assetUrl(row.signature_key),
-  };
+  const [logo, signature] = await Promise.all([
+    assetUrl(row.logo_key),
+    assetUrl(row.signature_key),
+  ]);
+
+  return { ...row, logo, signature };
 };
 
 const getProfileRow = async () => {

@@ -168,9 +168,10 @@ const formatDate = (value) => {
  * @param {Array}  items    document_items rows
  * @param {Object} seller   seller_profile row
  * @param {boolean} draft   render as a draft (watermark) or finalized
- * @returns {Object} { doc, seller, party, items, totals, hsnSummary }
+ * @returns {Promise<Object>} { doc, seller, party, items, totals, hsnSummary }
  */
-const buildDocumentJson = (doc, items, seller, draft) => {
+// async: storage.assetUrl presigns the logo under the s3 driver.
+const buildDocumentJson = async (doc, items, seller, draft) => {
   const config = getDocConfig(doc.doc_type);
 
   // Recompute via the engine for an authoritative per-line/total breakup.
@@ -228,6 +229,7 @@ const buildDocumentJson = (doc, items, seller, draft) => {
   // is no longer printed — the signatory name block + sysgen note replace it
   // (signature_key stays stored in case it's ever wanted back).
   const logoKey = doc.seller_logo_key || seller.logo_key;
+  const logoUrl = logoKey ? await storage.assetUrl(logoKey) : null;
 
   const hasShipping = !!(
     doc.party_shipping_address_line1 || doc.party_shipping_city
@@ -291,7 +293,7 @@ const buildDocumentJson = (doc, items, seller, draft) => {
         (doc.seller_bank_account_no || seller.bank_account_no) ||
         (doc.seller_upi_id || seller.upi_id)
       ),
-      logoUrl: logoKey ? storage.assetUrl(logoKey) : null,
+      logoUrl,
     },
     party: {
       billLabel: config.billLabel,
@@ -352,7 +354,7 @@ const generateAndStorePdf = async (documentId) => {
     loadSeller(),
   ]);
 
-  const json = buildDocumentJson(doc, items, seller, false);
+  const json = await buildDocumentJson(doc, items, seller, false);
   const buffer = await renderer.renderPdf(json);
   const hash = crypto.createHash("sha256").update(buffer).digest("hex");
 
@@ -396,7 +398,10 @@ const getPdfStream = async (documentId) => {
     if (!key) {
       key = await generateAndStorePdf(documentId);
     }
-    return { stream: storage.getStream(key), filename: pdfFilename(doc) };
+    return {
+      stream: await storage.getStream(key),
+      filename: pdfFilename(doc),
+    };
   }
 
   // Draft or cancelled → render on the fly (never stored). buildDocumentJson
@@ -407,7 +412,7 @@ const getPdfStream = async (documentId) => {
     loadSeller(),
   ]);
 
-  const json = buildDocumentJson(doc, items, seller, doc.status === "draft");
+  const json = await buildDocumentJson(doc, items, seller, doc.status === "draft");
   const buffer = await renderer.renderPdf(json);
 
   const { Readable } = require("stream");
@@ -463,9 +468,9 @@ const getDocxStream = async (documentId) => {
     loadSeller(),
   ]);
 
-  const json = buildDocumentJson(doc, items, seller, doc.status === "draft");
+  const json = await buildDocumentJson(doc, items, seller, doc.status === "draft");
 
-  // Inline the logo as a data: URI from LOCAL storage so html-to-docx never
+  // Inline the logo as a data: URI from storage so html-to-docx never
   // fetches it over the network (it has no fetch timeout — a slow/unreachable
   // asset host, e.g. a self-request behind a proxy, would hang the export).
   // A missing/unreadable asset resolves to null → the <img> is simply omitted.
@@ -486,6 +491,10 @@ module.exports = {
   generateAndStorePdf,
   getPdfStream,
   getDocxStream,
+  // per-type presentation (title/labels) — reused by the email service so the
+  // covering email and the PDF agree on what the document is called.
+  getDocConfig,
+  pdfFilename,
   // exported for unit tests / the documents service that re-uses the JSON shape
   buildDocumentJson,
 };

@@ -242,6 +242,69 @@ const validateNextNumberQuery = (req, res, next) => {
   }
 };
 
+// Email body: every field is OPTIONAL — with an empty body the document goes
+// to the party's stored email under a generated subject. This is a syntactic
+// check only; "is there actually a recipient" and "is this document finalized"
+// are business rules enforced in email.service (422 / 409).
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const validateEmailList = (value, field) => {
+  if (value === undefined || value === null || value === "") {
+    return;
+  }
+
+  const addresses = (
+    Array.isArray(value) ? value : String(value).split(",")
+  )
+    .map((address) => String(address).trim())
+    .filter(Boolean);
+
+  if (!addresses.length) {
+    throw new AppError(`${field} must contain at least one email address`, 400);
+  }
+
+  addresses.forEach((address) => {
+    if (address.length > 150 || !EMAIL_REGEX.test(address)) {
+      throw new AppError(`${field} contains an invalid email: ${address}`, 400);
+    }
+  });
+};
+
+const validateDocumentEmail = (req, res, next) => {
+  try {
+    const body = req.body === undefined ? {} : req.body;
+
+    if (!isPlainObject(body)) {
+      throw new AppError("Request body must be a valid JSON object", 400);
+    }
+
+    validateEmailList(body.to, "to");
+    validateEmailList(body.cc, "cc");
+
+    if (body.subject !== undefined && body.subject !== null) {
+      if (typeof body.subject !== "string" || body.subject.length > 200) {
+        throw new AppError(
+          "subject must be a string of at most 200 characters",
+          400
+        );
+      }
+    }
+
+    if (body.message !== undefined && body.message !== null) {
+      if (typeof body.message !== "string" || body.message.length > 5000) {
+        throw new AppError(
+          "message must be a string of at most 5000 characters",
+          400
+        );
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 const validateListQuery = (req, res, next) => {
   try {
     const { type, status, page, limit } = req.query;
@@ -290,6 +353,7 @@ module.exports = {
   validateUpdate,
   validateDocumentId,
   validateConvert,
+  validateDocumentEmail,
   validateNextNumberQuery,
   validateListQuery,
 };
