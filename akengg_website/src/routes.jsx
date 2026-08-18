@@ -20,7 +20,7 @@ function AppRoutes() {
       <Route path="/projects" element={<Projects />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/blogs" element={<BlogListing />} />
-      <Route path="/blogs/:id" element={<BlogDetail />} />
+      <Route path="/blogs/:slug" element={<BlogDetail />} />
       <Route path="/faq" element={<Faq />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<Terms />} />

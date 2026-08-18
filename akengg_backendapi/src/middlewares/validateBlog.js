@@ -26,6 +26,29 @@ const validateBlogId = (req, res, next) => {
   }
 };
 
+// Public detail route: accepts either a numeric id (legacy URLs already
+// indexed by search engines) or a slug ("choosing-the-right-industrial-boiler").
+const validateBlogIdOrSlug = (req, res, next) => {
+  try {
+    const identifier = String(req.params.idOrSlug || "").trim();
+    const isNumericId = /^[0-9]+$/.test(identifier);
+    const isSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identifier);
+
+    if (isNumericId) {
+      const blogId = Number(identifier);
+      if (!Number.isInteger(blogId) || blogId <= 0) {
+        throw new AppError("Blog id must be a positive integer", 400);
+      }
+    } else if (!isSlug || identifier.length > 220) {
+      throw new AppError("Blog identifier must be a valid id or slug", 400);
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 const validateBlogListQuery = (req, res, next) => {
   try {
     const { page, limit, search } = req.query;
@@ -134,6 +157,7 @@ const validateUpdateBlog = (req, res, next) => {
 
 module.exports = {
   validateBlogId,
+  validateBlogIdOrSlug,
   validateBlogListQuery,
   validateCreateBlog,
   validateUpdateBlog,

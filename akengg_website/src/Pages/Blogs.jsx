@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import { FaHeart, FaComment } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { getBlogs } from "../api/api";
 
-const posts = [
+// Fallback shown until the API responds (or if it is unreachable).
+const FALLBACK_POSTS = [
   {
     id: 1,
     image: "/assets/Blog1.jpg",
@@ -38,6 +41,39 @@ const posts = [
 ];
 
 export default function Blogs() {
+  const [posts, setPosts] = useState(FALLBACK_POSTS);
+
+  useEffect(() => {
+    // Latest three real posts; linked by slug (see BlogListing for the same
+    // pattern on the full listing page).
+    getBlogs({ limit: 3 })
+      .then((res) => {
+        const blogs = res?.blogs;
+        if (Array.isArray(blogs) && blogs.length) {
+          setPosts(
+            blogs.map((b) => ({
+              id: b.id,
+              slug: b.slug,
+              image: b.image,
+              title: b.title,
+              author: "A K Engineering",
+              date: b.created_at
+                ? new Date(b.created_at).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "",
+              likes: 0,
+              comments: 0,
+              description: b.descrip,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <section className="py-20 bg-[#1c1f26] text-white">
       <div className="max-w-7xl mx-auto px-4">
@@ -95,7 +131,7 @@ export default function Blogs() {
                 </p>
 
                 {/* Read More */}
-                <Link to={`/blogs/${post.id}`}>
+                <Link to={`/blogs/${post.slug || post.id}`}>
                   <span className="text-[#F4C542] text-sm font-medium hover:underline">
                     Read More →
                   </span>

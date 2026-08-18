@@ -171,6 +171,30 @@ const getBlogById = async (id) => {
   return mapBlog(rows[0]);
 };
 
+// Public lookup: prefer the slug (a slug made purely of digits would shadow an
+// id, so slug wins), fall back to id so legacy /blogs/12 URLs keep resolving.
+const getBlogByIdOrSlug = async (identifier) => {
+  const value = String(identifier).trim();
+
+  const rows = await query(
+    `SELECT id, title, slug, descrip, content, image, created_at, updated_at
+     FROM blogs
+     WHERE slug = ?
+     LIMIT 1`,
+    [value]
+  );
+
+  if (rows.length) {
+    return mapBlog(rows[0]);
+  }
+
+  if (/^[0-9]+$/.test(value)) {
+    return getBlogById(Number(value));
+  }
+
+  throw new AppError("Blog not found", 404);
+};
+
 const removeBlogImage = async (image) => {
   if (!image) {
     return;
@@ -262,6 +286,7 @@ const deleteBlog = async (id) => {
 module.exports = {
   getBlogs,
   getBlogById,
+  getBlogByIdOrSlug,
   createBlog,
   updateBlog,
   deleteBlog,

@@ -51,6 +51,7 @@ const BlogListing = () => {
           setPosts(
             blogs.map((b) => ({
               id: b.id,
+              slug: b.slug,
               image: b.image,
               title: b.title,
               author: "A K Engineering",
@@ -157,7 +158,7 @@ const BlogListing = () => {
                   </p>
 
                   {/* Read More */}
-                  <Link to={`/blogs/${post.id}`}>
+                  <Link to={`/blogs/${post.slug || post.id}`}>
                     <span className="text-[#F4C542] text-sm font-medium hover:underline">
                       Read More →
                     </span>

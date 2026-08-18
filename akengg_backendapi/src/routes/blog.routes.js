@@ -6,6 +6,7 @@ const { uploadBlogImage, compressBlogImage } = require("../middlewares/blogUploa
 const { verifyToken, authorizeRoles } = require("../middlewares/auth");
 const {
   validateBlogId,
+  validateBlogIdOrSlug,
   validateBlogListQuery,
   validateCreateBlog,
   validateUpdateBlog,
@@ -14,7 +15,9 @@ const {
 const router = express.Router();
 
 router.get("/", validateBlogListQuery, asyncHandler(blogController.getBlogs));
-router.get("/:id", validateBlogId, asyncHandler(blogController.getBlogById));
+// Public detail: matched by slug, with numeric id kept as a fallback so URLs
+// indexed before the slug switch keep working. Admin PUT/DELETE stay id-only.
+router.get("/:idOrSlug", validateBlogIdOrSlug, asyncHandler(blogController.getBlog));
 // compressBlogImage runs AFTER validation so an invalid payload never leaves a
 // stray object in the bucket.
 router.post(

@@ -5,8 +5,8 @@ const getBlogs = async (req, res) => {
   res.status(200).json(result);
 };
 
-const getBlogById = async (req, res) => {
-  const blog = await blogService.getBlogById(req.params.id);
+const getBlog = async (req, res) => {
+  const blog = await blogService.getBlogByIdOrSlug(req.params.idOrSlug);
   res.status(200).json({
     message: "Blog fetched successfully",
     data: blog,
@@ -38,7 +38,7 @@ const deleteBlog = async (req, res) => {
 
 module.exports = {
   getBlogs,
-  getBlogById,
+  getBlog,
   createBlog,
   updateBlog,
   deleteBlog,

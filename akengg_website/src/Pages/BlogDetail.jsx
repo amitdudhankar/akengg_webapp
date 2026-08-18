@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getBlogById } from "../api/api";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { getBlog } from "../api/api";
 import Seo from "../Components/Seo";
 import JsonLd from "../Components/JsonLd";
 import { toSafeHtml, toExcerpt } from "../utils/blogContent";
@@ -10,6 +10,7 @@ import { toSafeHtml, toExcerpt } from "../utils/blogContent";
 const FALLBACK_POSTS = [
   {
     id: "1",
+    slug: "choosing-the-right-industrial-boiler-for-your-business",
     title: "Choosing the Right Industrial Boiler for Your Business",
     image: "/assets/Blog1.jpg",
     date: "13th Dec",
@@ -26,21 +27,29 @@ Investing in the right boiler is not just a purchase — it’s a long-term oper
 ];
 
 const BlogDetail = () => {
-  const { id } = useParams();
+  // Route param is the slug; the API also resolves legacy numeric ids so
+  // old /blogs/12 links (bookmarks, search results) still load.
+  const { slug } = useParams();
+  const navigate = useNavigate();
 
-  // Match the fallback by id (the design looks a post up by route :id).
-  const fallbackPost =
-    FALLBACK_POSTS.find((p) => p.id === id) || null;
+  const matchesFallback = (p) => p.slug === slug || p.id === slug;
+  const fallbackPost = FALLBACK_POSTS.find(matchesFallback) || null;
 
   const [post, setPost] = useState(fallbackPost);
 
   useEffect(() => {
-    setPost(FALLBACK_POSTS.find((p) => p.id === id) || null);
-    getBlogById(id)
+    setPost(FALLBACK_POSTS.find(matchesFallback) || null);
+    getBlog(slug)
       .then((d) => {
         if (d) {
+          // Reached via a legacy id URL — swap in the canonical slug URL.
+          if (d.slug && d.slug !== slug) {
+            navigate(`/blogs/${d.slug}`, { replace: true });
+            return;
+          }
           setPost({
             id: d.id,
+            slug: d.slug,
             title: d.title,
             image: d.image,
             date: d.created_at
@@ -58,7 +67,8 @@ const BlogDetail = () => {
         }
       })
       .catch(() => {});
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   if (!post) {
     return (
@@ -110,7 +120,7 @@ const BlogDetail = () => {
       <Seo
         title={post?.title}
         description={excerpt}
-        path={`/blogs/${id}`}
+        path={`/blogs/${post?.slug || slug}`}
         type="article"
         image={post?.image}
       />
@@ -122,7 +132,7 @@ const BlogDetail = () => {
             headline: post.title,
             image: post.image,
             description: excerpt,
-            mainEntityOfPage: `https://www.akengg.in/blogs/${id}`,
+            mainEntityOfPage: `https://www.akengg.in/blogs/${post?.slug || slug}`,
           }}
         />
       )}

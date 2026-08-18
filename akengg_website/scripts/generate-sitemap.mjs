@@ -9,7 +9,7 @@
 // build also works.
 //
 // <lastmod> is emitted only where the date is genuinely known:
-//   /blogs/:id   -> that row's updated_at (falling back to created_at)
+//   /blogs/:slug -> that row's updated_at (falling back to created_at)
 //   /blogs       -> the newest blog date
 //   static pages -> git commit date of the page source + its direct local imports
 // A route with no reliable date gets no <lastmod> at all. Google ignores lastmod
@@ -185,7 +185,7 @@ try {
 const blogEntries = blogs
   .filter((blog) => blog && blog.id !== undefined && blog.id !== null)
   .map((blog) => ({
-    loc: `${SITE_URL}/blogs/${encodeURIComponent(blog.id)}`,
+    loc: `${SITE_URL}/blogs/${encodeURIComponent(blog.slug || blog.id)}`,
     lastmod: toIso(blog.updated_at) || toIso(blog.created_at),
     changefreq: "monthly",
     priority: "0.6",

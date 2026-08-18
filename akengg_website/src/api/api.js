@@ -56,7 +56,8 @@ export const getBlogs = (params = {}) => {
   const qs = new URLSearchParams(params).toString();
   return request(`/blogs${qs ? `?${qs}` : ""}`); // -> { blogs, page, totalItems, totalPages }
 };
-export const getBlogById = (id) => request(`/blogs/${id}`).then((r) => dataOf(r) || null);
+export const getBlog = (idOrSlug) =>
+  request(`/blogs/${encodeURIComponent(idOrSlug)}`).then((r) => dataOf(r) || null);
 
 // ── Forms (public POST) ─────────────────────────────────────────────────────
 // payload: { name, number, email, message, service?, source? }
