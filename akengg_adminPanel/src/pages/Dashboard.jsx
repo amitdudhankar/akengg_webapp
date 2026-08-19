@@ -104,15 +104,23 @@ function Dashboard() {
               icon={IndianRupee}
               tone="emerald"
               label="Total Invoiced"
-              value={formatINR(docs.revenue)}
-              sub="Finalized tax invoices"
+              value={docs.available ? formatINR(docs.revenue) : null}
+              sub={
+                docs.partial
+                  ? `Finalized tax invoices · newest ${docs.counted} of ${c.documents} documents`
+                  : "Finalized tax invoices"
+              }
             />
             <StatCard
               icon={FileText}
               tone="indigo"
               label="Documents"
               value={c.documents}
-              sub={`${docs.byStatus.finalized} finalized · ${docs.byStatus.draft} drafts`}
+              sub={
+                docs.available
+                  ? `${docs.byStatus.finalized} finalized · ${docs.byStatus.draft} drafts`
+                  : null
+              }
               to="/documents"
             />
             <StatCard
@@ -120,7 +128,7 @@ function Dashboard() {
               tone="amber"
               label="New Leads"
               value={c.newLeads}
-              sub={`${c.contacts} total enquiries`}
+              sub={c.contacts == null ? null : `${c.contacts} total enquiries`}
               to="/contact-leads"
             />
             <StatCard
@@ -128,7 +136,11 @@ function Dashboard() {
               tone="sky"
               label="Parties"
               value={c.parties}
-              sub={`${c.clients} clients · ${c.vendors} vendors`}
+              sub={
+                c.clients == null
+                  ? null
+                  : `${c.clients} clients · ${c.vendors} vendors`
+              }
               to="/parties"
             />
           </div>
@@ -160,6 +172,12 @@ function Dashboard() {
                     </div>
                   ))}
                 </div>
+                {docs.partial && (
+                  <p className="mt-3 text-center text-xs text-gray-400">
+                    Counts cover the newest {docs.counted} of {c.documents} documents
+                    — the API returns at most 100 per page.
+                  </p>
+                )}
               </Panel>
             </div>
           </div>

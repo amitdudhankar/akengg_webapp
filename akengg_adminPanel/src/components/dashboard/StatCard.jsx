@@ -28,7 +28,7 @@ function StatCard({ icon: Icon, label, value, sub, tone = "indigo", to }) {
       <div className="min-w-0">
         <div className="truncate text-sm text-gray-500">{label}</div>
         <div className="mt-0.5 truncate text-2xl font-semibold text-gray-900">
-          {value}
+          {value ?? "—"}
         </div>
         {sub && <div className="mt-0.5 truncate text-xs text-gray-400">{sub}</div>}
       </div>
