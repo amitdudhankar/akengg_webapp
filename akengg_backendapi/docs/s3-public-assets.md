@@ -40,7 +40,7 @@ Edit. Uncheck:
 - Block public and cross-account access to buckets and objects through *any* public bucket policies
 
 Leave both **ACL** options checked — this setup grants access by policy, never
-by object ACL (which is also why `createUploader` sets no ACL).
+by object ACL (which is also why `putBuffer` sets no ACL).
 
 ### 2. Attach the bucket policy
 

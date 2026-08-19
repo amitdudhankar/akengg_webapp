@@ -15,10 +15,6 @@ const FIELDS = [
   "about_text",
   "founding_year",
   "map_embed_url",
-  "stat_years",
-  "stat_projects",
-  "stat_clients",
-  "stat_support",
   "footer_description",
 ];
 
@@ -130,12 +126,6 @@ const SettingsPage = () => {
         <SectionTitle>About</SectionTitle>
         <Field label="Founding Year" name="founding_year" value={formData.founding_year} onChange={handleChange} placeholder="2005" />
         <Field label="About Text" name="about_text" value={formData.about_text} onChange={handleChange} textarea />
-
-        <SectionTitle>Stats Banner</SectionTitle>
-        <Field label="Years" name="stat_years" value={formData.stat_years} onChange={handleChange} placeholder="30+" />
-        <Field label="Projects" name="stat_projects" value={formData.stat_projects} onChange={handleChange} placeholder="500+" />
-        <Field label="Clients" name="stat_clients" value={formData.stat_clients} onChange={handleChange} placeholder="100+" />
-        <Field label="Support" name="stat_support" value={formData.stat_support} onChange={handleChange} placeholder="24/7" />
 
         <SectionTitle>Footer & Map</SectionTitle>
         <Field label="Footer Description" name="footer_description" value={formData.footer_description} onChange={handleChange} textarea />

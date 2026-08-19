@@ -2,7 +2,7 @@ const express = require("express");
 
 const projectController = require("../controllers/project.controller");
 const asyncHandler = require("../middlewares/asyncHandler");
-const { createUploader } = require("../utils/storage");
+const createImageUpload = require("../middlewares/imageUpload");
 const { verifyToken, authorizeRoles } = require("../middlewares/auth");
 const {
   validateProjectId,
@@ -11,7 +11,9 @@ const {
 } = require("../middlewares/validateProject");
 
 const router = express.Router();
-const upload = createUploader("projects");
+// compress runs AFTER validation so an invalid payload never leaves a stray
+// object in the bucket.
+const { upload, compress } = createImageUpload("projects");
 
 router.get("/", asyncHandler(projectController.getProjects));
 router.get("/:id", validateProjectId, asyncHandler(projectController.getProjectById));
@@ -22,6 +24,7 @@ router.post(
   authorizeRoles("admin", "employee"),
   upload.single("image"),
   validateCreateProject,
+  compress,
   asyncHandler(projectController.createProject)
 );
 
@@ -32,6 +35,7 @@ router.put(
   validateProjectId,
   upload.single("image"),
   validateUpdateProject,
+  compress,
   asyncHandler(projectController.updateProject)
 );
 

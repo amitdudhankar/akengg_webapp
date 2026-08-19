@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { FaHeart, FaComment } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { getBlogs } from "../api/api";
 
@@ -11,8 +10,6 @@ const FALLBACK_POSTS = [
     title: "Choosing the Right Industrial Boiler for Your Business",
     author: "A K Engineering",
     date: "13th Dec",
-    likes: 15,
-    comments: 4,
     description:
       "Selecting the right industrial boiler is crucial for efficiency, safety, and long-term cost savings. From IBR to non-IBR systems, understanding capacity, fuel type, and operational requirements helps industries achieve optimal performance and reliability.",
   },
@@ -22,8 +19,6 @@ const FALLBACK_POSTS = [
     title: "Industrial Chimneys: Ensuring Safe Emission Control",
     author: "A K Engineering",
     date: "13th Dec",
-    likes: 15,
-    comments: 4,
     description:
       "Industrial chimneys play a critical role in safely releasing gases and maintaining environmental compliance. Proper design, height, and material selection ensure efficient draft, reduced pollution, and safe plant operations.",
   },
@@ -33,8 +28,6 @@ const FALLBACK_POSTS = [
     title: "Why Quality Fabrication Matters in Industrial Projects",
     author: "A K Engineering",
     date: "22nd Dec",
-    likes: 18,
-    comments: 5,
     description:
       "High-quality fabrication ensures structural integrity and operational efficiency in industrial setups. From precise welding to material selection, every step impacts the durability and performance of fabricated components.",
   },
@@ -64,8 +57,6 @@ export default function Blogs() {
                     year: "numeric",
                   })
                 : "",
-              likes: 0,
-              comments: 0,
               description: b.descrip,
             }))
           );
@@ -91,9 +82,12 @@ export default function Blogs() {
         {/* Blog Grid */}
         <div className="grid md:grid-cols-3 gap-8">
           {posts.map((post) => (
-            <div
+            // The whole card is the link — clicking the image, title or body
+            // navigates, not just "Read More".
+            <Link
               key={post.id}
-              className="group bg-[#252932] border border-gray-700 overflow-hidden hover:border-[#F4C542] transition duration-300"
+              to={`/blogs/${post.slug || post.id}`}
+              className="group block bg-[#252932] border border-gray-700 overflow-hidden hover:border-[#F4C542] transition duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F4C542]"
             >
               {/* Image */}
               <div className="overflow-hidden">
@@ -108,20 +102,12 @@ export default function Blogs() {
               {/* Content */}
               <div className="p-5">
                 {/* Meta */}
-                <div className="flex items-center justify-between text-gray-400 text-xs mb-3">
+                <div className="flex items-center text-gray-400 text-xs mb-3">
                   <span>{post.date}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <FaHeart className="text-[#F4C542]" /> {post.likes}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FaComment className="text-[#F4C542]" /> {post.comments}
-                    </span>
-                  </div>
                 </div>
 
                 {/* Title */}
-                <h3 className="text-lg font-semibold mb-3 leading-snug group-hover:text-[#F4C542] transition cursor-pointer">
+                <h3 className="text-lg font-semibold mb-3 leading-snug group-hover:text-[#F4C542] transition">
                   {post.title}
                 </h3>
 
@@ -130,14 +116,13 @@ export default function Blogs() {
                   {post.description}
                 </p>
 
-                {/* Read More */}
-                <Link to={`/blogs/${post.slug || post.id}`}>
-                  <span className="text-[#F4C542] text-sm font-medium hover:underline">
-                    Read More →
-                  </span>
-                </Link>
+                {/* Affordance only — the card itself is the link, so this must
+                    not be a nested <Link>. */}
+                <span className="mt-4 inline-block text-[#F4C542] text-sm font-medium group-hover:underline">
+                  Read More →
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
         {/* View All Button */}

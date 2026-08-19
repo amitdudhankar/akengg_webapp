@@ -136,10 +136,6 @@ CREATE TABLE IF NOT EXISTS site_settings (
   about_text LONGTEXT NULL,
   founding_year VARCHAR(10) NULL,
   map_embed_url TEXT NULL,
-  stat_years VARCHAR(40) NULL,
-  stat_projects VARCHAR(40) NULL,
-  stat_clients VARCHAR(40) NULL,
-  stat_support VARCHAR(40) NULL,
   footer_description VARCHAR(500) NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

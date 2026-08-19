@@ -2,7 +2,6 @@ import React from "react";
 import Seo from "../Components/Seo";
 import Hero from "../Components/Hero";
 import ServiceHighlights from "../Components/ServiceHighlights";
-// import BannerThin from "../Components/BannerThin";
 // import SuccessProjects from "../Components/SuccessProjects";
 // import LeadershipTeam from "../Components/Leadershipteam";
 import TestimonialSection from "../Components/Testimonials";
@@ -20,11 +19,6 @@ const Home = () => {
         path="/"
       />
       <Hero />
-
-      {/* Show BannerThin only on desktop (lg and up)
-      <div className="hidden lg:block">
-        <BannerThin />
-      </div> */}
 
       <ServiceHighlights />
       <BoilerSolution/>

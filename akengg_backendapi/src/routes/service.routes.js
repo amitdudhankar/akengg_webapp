@@ -2,7 +2,7 @@ const express = require("express");
 
 const serviceController = require("../controllers/service.controller");
 const asyncHandler = require("../middlewares/asyncHandler");
-const { createUploader } = require("../utils/storage");
+const createImageUpload = require("../middlewares/imageUpload");
 const { verifyToken, authorizeRoles } = require("../middlewares/auth");
 const {
   validateServiceId,
@@ -11,7 +11,9 @@ const {
 } = require("../middlewares/validateService");
 
 const router = express.Router();
-const upload = createUploader("services");
+// compress runs AFTER validation so an invalid payload never leaves a stray
+// object in the bucket.
+const { upload, compress } = createImageUpload("services");
 
 router.get("/", asyncHandler(serviceController.getServices));
 router.get("/:id", validateServiceId, asyncHandler(serviceController.getServiceById));
@@ -22,6 +24,7 @@ router.post(
   authorizeRoles("admin", "employee"),
   upload.single("image"),
   validateCreateService,
+  compress,
   asyncHandler(serviceController.createService)
 );
 
@@ -32,6 +35,7 @@ router.put(
   validateServiceId,
   upload.single("image"),
   validateUpdateService,
+  compress,
   asyncHandler(serviceController.updateService)
 );
 

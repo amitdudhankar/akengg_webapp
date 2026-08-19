@@ -14,10 +14,6 @@ const ALLOWED_FIELDS = [
   "about_text",
   "founding_year",
   "map_embed_url",
-  "stat_years",
-  "stat_projects",
-  "stat_clients",
-  "stat_support",
   "footer_description",
 ];
 

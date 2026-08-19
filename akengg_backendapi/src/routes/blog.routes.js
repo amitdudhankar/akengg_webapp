@@ -2,7 +2,7 @@ const express = require("express");
 
 const blogController = require("../controllers/blog.controller");
 const asyncHandler = require("../middlewares/asyncHandler");
-const { uploadBlogImage, compressBlogImage } = require("../middlewares/blogUpload");
+const createImageUpload = require("../middlewares/imageUpload");
 const { verifyToken, authorizeRoles } = require("../middlewares/auth");
 const {
   validateBlogId,
@@ -13,6 +13,8 @@ const {
 } = require("../middlewares/validateBlog");
 
 const router = express.Router();
+const { upload: uploadBlogImage, compress: compressBlogImage } =
+  createImageUpload("blogs");
 
 router.get("/", validateBlogListQuery, asyncHandler(blogController.getBlogs));
 // Public detail: matched by slug, with numeric id kept as a fallback so URLs

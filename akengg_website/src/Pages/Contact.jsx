@@ -5,6 +5,11 @@ import { useSettings } from "../context/SettingsContext";
 import Seo from "../Components/Seo";
 import { useToast } from "../Components/Toast/ToastProvider";
 
+// Used until an admin sets map_embed_url in Site Settings — same pattern as
+// every other settings-backed value on the site.
+const FALLBACK_MAP_EMBED_URL =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3784.8285182863474!2d73.89896461378555!3d18.446093483849268!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2ebae42480ce1%3A0xb56bf27a244c9cd4!2sA%20K%20Engineering!5e0!3m2!1sen!2sin!4v1762797596159!5m2!1sen!2sin";
+
 const Contact = () => {
   const { settings } = useSettings();
   const toast = useToast();
@@ -234,7 +239,7 @@ const Contact = () => {
             {/* Map Container */}
             <div className="overflow-hidden border border-gray-700">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3784.8285182863474!2d73.89896461378555!3d18.446093483849268!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2ebae42480ce1%3A0xb56bf27a244c9cd4!2sA%20K%20Engineering!5e0!3m2!1sen!2sin!4v1762797596159!5m2!1sen!2sin"
+                src={settings?.map_embed_url || FALLBACK_MAP_EMBED_URL}
                 width="100%"
                 height="450"
                 style={{ border: 0 }}

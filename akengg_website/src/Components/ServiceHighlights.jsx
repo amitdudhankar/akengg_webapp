@@ -1,82 +1,57 @@
 import { Link } from "react-router-dom";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { getServices } from "../api/api";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Shown until the Services admin has rows — same fallback contract the rest of
+// the site uses, so the homepage never renders an empty panel.
+const FALLBACK_SERVICES = [
+  {
+    title: "Boiler Systems",
+    description:
+      "IBR/Non-IBR Boilers, Thermic Fluid Heaters, Hot Water Generators built for reliability",
+    image: "/assets/BoilerSystems.svg",
+  },
+  {
+    title: "Industrial Fabrication",
+    description:
+      "SS & MS Fabrication for Chimneys, Structural Platforms, Ducting, and All Types of Tanks",
+    image: "/assets/IF.svg",
+  },
+  {
+    title: "Pollution Control",
+    description:
+      "Chimneys, Multicyclone Separators, Dust Collectors, ETP Systems engineered for efficiency",
+    image: "/assets/Pollution.svg",
+  },
+  {
+    title: "Water Treatment",
+    description:
+      "Custom‑engineered water treatment plants for compliance & efficiency",
+    image: "/assets/WT.svg",
+  },
+];
+
+// The panel is a teaser beside the copy, not the full catalogue — "View More
+// Services" goes to /services for the rest.
+const MAX_CARDS = 4;
+
 const ServiceHighlights = () => {
-  const navigate = useNavigate();
+  const [services, setServices] = useState(FALLBACK_SERVICES);
 
-  const sectionRef = useRef(null);
+  useEffect(() => {
+    getServices()
+      .then((d) => {
+        if (Array.isArray(d) && d.length) setServices(d);
+      })
+      .catch(() => {});
+  }, []);
 
-  const services = [
-    {
-      title: "Boiler Systems",
-      description:
-        "IBR/Non-IBR Boilers, Thermic Fluid Heaters, Hot Water Generators built for reliability",
-      image: "/assets/BoilerSystems.svg", // Replace with real image
-    },
-    {
-      title: "Industrial Fabrication",
-      description:
-        "SS & MS Fabrication for Chimneys, Structural Platforms, Ducting, and All Types of Tanks",
-      image: "/assets/IF.svg", // Replace with real image
-    },
-    {
-      title: "Pollution Control",
-      description:
-        "Chimneys, Multicyclone Separators, Dust Collectors, ETP Systems engineered for efficiency",
-      image: "/assets/Pollution.svg", // Replace with real image
-    },
-    {
-      title: "Water Treatment",
-      description:
-        "Custom‑engineered water treatment plants for compliance & efficiency",
-      image: "/assets/WT.svg", // Replace with real image
-    },
-  ];
+  const cards = services.slice(0, MAX_CARDS);
 
-  const whatMakesUsDifferent = [
-    {
-      title: "20+ Years of Experience",
-      description:
-        "Proven industry legacy delivering robust engineering solutions across diverse sectors.",
-      image: "/assets/20+.jpg", // Replace with real image
-    },
-    {
-      title: "Tailored Engineering",
-      description:
-        "Custom-built solutions tailored for Pharma, Chemical, Food & Textile industries.",
-      image: "/assets/TailoredBoiler.jpg", // Replace with real image
-    },
-    {
-      title: "End-to-End Solutions",
-      description:
-        "From design to delivery — we handle fabrication, installation & commissioning all in-house.",
-      image: "/assets/E2E.jpg",
-    },
-    {
-      title: "Pollution Control Experts",
-      description:
-        "Multicyclone separators, dust collectors & ETPs built for high-efficiency compliance.",
-      image: "/assets/PC.jpg",
-    },
-    {
-      title: "Precision & Quality",
-      description:
-        "MS & SS Fabrication with uncompromised welding, finishing, and structural strength.",
-      image: "/assets/SS.jpg",
-    },
-    {
-      title: "Support That Scales",
-      description:
-        "24/7 service with agile project handling and scalable solutions that grow with you.",
-      image: "/assets/24x7.jpg",
-    },
-  ];
 
   return (
     <section className="py-10 bg-[#1c1f26] text-white">
@@ -104,37 +79,33 @@ const ServiceHighlights = () => {
           </Link>
         </div>
 
-        {/* RIGHT IMAGES */}
-        <div className="flex flex-col gap-6">
-          {/* Card 1 */}
-          <div className="relative">
-            <img
-              src="/assets/BoilerSystems.svg"
-              alt="Boiler Systems"
-              className="w-full h-[220px] object-cover"
-              loading="lazy"
-            />
-            <div className="absolute top-4 left-4 bg-black px-4 py-2">
-              <span className="text-[#F4C542] text-sm font-semibold">
-                BOILER SYSTEMS
-              </span>
+        {/* RIGHT IMAGES — driven by the Services admin, FALLBACK_SERVICES until
+            it has rows. A service saved without an image still gets a card, so
+            one missing upload can't punch a hole in the grid. */}
+        <div
+          className={`grid gap-4 sm:gap-6 ${
+            cards.length > 2 ? "sm:grid-cols-2" : "grid-cols-1"
+          }`}
+        >
+          {cards.map((service, index) => (
+            <div key={service.id ?? index} className="relative">
+              {service.image ? (
+                <img
+                  src={service.image}
+                  alt={service.title || "Service"}
+                  className="w-full h-[220px] object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-[220px] bg-black/40" />
+              )}
+              <div className="absolute top-4 left-4 bg-black px-4 py-2">
+                <span className="text-[#F4C542] text-sm font-semibold uppercase">
+                  {service.title}
+                </span>
+              </div>
             </div>
-          </div>
-
-          {/* Card 2 */}
-          <div className="relative">
-            <img
-              src="/assets/Pollution.svg"
-              alt="Pollution Control"
-              className="w-full h-[220px] object-cover"
-              loading="lazy"
-            />
-            <div className="absolute top-4 left-4 bg-black px-4 py-2">
-              <span className="text-[#F4C542] text-sm font-semibold">
-                POLLUTION CONTROL
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
       {/* View More Button */}
