@@ -7,6 +7,10 @@ import {
   getFirstValidationError,
   validateLoginForm,
 } from "../utils/userValidation";
+import AuthLayout from "../components/ui/AuthLayout";
+import Field from "../components/ui/Field";
+import PasswordField from "../components/ui/PasswordField";
+import Button from "../components/ui/Button";
 
 function Login() {
   const navigate = useNavigate();
@@ -66,8 +70,6 @@ function Login() {
 
       navigate("/");
     } catch (error) {
-      console.error("Login failed:", error);
-
       toast.error(
         error?.response?.data?.message || error?.message || "Login failed",
         {
@@ -80,63 +82,51 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white p-8 shadow-md rounded-xl">
-        <div className="flex justify-center mb-6">
-          <img
-            src="/assets/LogoRemoveBG.png"
-            alt="A K Engg Admin"
-            className="h-16"
-          />
+    <AuthLayout
+      title="Sign in"
+      subtitle="Manage your website content and GST documents."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field
+          label="Email"
+          name="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => handleBlur("email", { email, password })}
+          error={errors.email}
+          placeholder="you@example.com"
+          autoComplete="username"
+          maxLength={150}
+          required
+        />
+
+        <PasswordField
+          label="Password"
+          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onBlur={() => handleBlur("password", { email, password })}
+          error={errors.password}
+          placeholder="Enter your password"
+          autoComplete="current-password"
+          required
+        />
+
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800 hover:underline"
+          >
+            Forgot password?
+          </Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => handleBlur("email", { email, password })}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="amit@example.com"
-              maxLength={150}
-              required
-            />
-            {errors.email ? (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            ) : null}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onBlur={() => handleBlur("password", { email, password })}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter your password"
-              required
-            />
-            {errors.password ? (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            ) : null}
-          </div>
-          <Link to="/forgot-password">
-            <p className="text-sm text-blue-600 hover:underline cursor-pointer mb-4">
-              Forgot Password
-            </p>
-          </Link>{" "}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition"
-          >
-            {isSubmitting ? "Logging in..." : "Login"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <Button type="submit" loading={isSubmitting} className="w-full">
+          {isSubmitting ? "Signing in..." : "Sign in"}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
 
