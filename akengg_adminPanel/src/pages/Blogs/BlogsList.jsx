@@ -1,202 +1,200 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { deleteBlog, fetchBlogs } from "../../api/api"; // Adjust the path if needed
+import { Plus, Newspaper } from "lucide-react";
+import { deleteBlog, fetchBlogs } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
-import { Pencil, Trash2 } from "lucide-react";
-import DeleteBlog from "./DeleteBlog";
+import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
+
+const fmtDate = (value) =>
+  value
+    ? new Date(value)
+        .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+        .toUpperCase()
+    : "—";
 
 function BlogsList() {
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [search, setSearch] = useState("");
-  const [limit] = useState(10); // You can make this user-selectable if needed
+  // Blogs are paginated and searched SERVER-side, so the raw input is debounced
+  // before it becomes a query — otherwise every keystroke fires a request.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [limit] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBlogId, setSelectedBlogId] = useState(null);
   const [selectedBlog, setSelectedBlog] = useState(null);
-
-  const [selectedUserEmail, setSelectedUserEmail] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const getBlogs = async () => {
+    setLoading(true);
     try {
-      const response = await fetchBlogs({ page, limit, search });
+      const response = await fetchBlogs({ page, limit, search: debouncedSearch });
       const data = response.data;
-
-      setBlogs(data.blogs);
+      // /blogs answers the flat { blogs, page, totalItems, totalPages } envelope.
+      setBlogs(data.blogs || []);
       setPage(data.page);
       setTotalPages(data.totalPages);
+      setTotalItems(data.totalItems ?? 0);
     } catch (error) {
-      console.error("Error fetching blogs:", error);
       toast.error(error?.response?.data?.message || "Failed to fetch blogs");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     getBlogs();
-  }, [page, search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, debouncedSearch]);
 
-  const handlePageChange = (pageNumber) => setPage(pageNumber);
-
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setPage(1); // Reset to first page on new search
-  };
-
-  const handleEditClick = (id) => {
-    navigate(`/edit-blog/${id}`);
-  };
-
-  const handleDeleteClick = (blogId) => {
-    const selectedBlog = blogs.find((blog) => blog.id === blogId);
-    setSelectedBlog(selectedBlog);
-    setSelectedBlogId(blogId); // Set the selectedBlogId here
+  const handleDeleteClick = (blog) => {
+    setSelectedBlog(blog);
+    setIsChecked(false);
     setIsModalOpen(true);
   };
 
   const handleDeleteConfirmed = async () => {
-    if (!selectedBlogId) {
-      toast.error("You must select a valid blog to delete.");
+    if (!isChecked) {
+      toast.error("You must confirm the deletion.");
       return;
     }
-
+    if (!selectedBlog?.id) return;
+    setDeleting(true);
     try {
-      // Call deleteBlog API to delete the selected blog
-      const response = await deleteBlog(selectedBlogId);
+      const response = await deleteBlog(selectedBlog.id);
       toast.success(response?.data?.message || "Blog deleted successfully");
-
-      // After successful deletion, close the modal and refresh the blogs list
       setIsModalOpen(false);
-      setSelectedBlogId(null); // Reset selectedBlogId after deletion
-      getBlogs(); // Refresh the list of blogs
+      setSelectedBlog(null);
+      getBlogs();
     } catch (error) {
-      console.error("Error deleting blog:", error);
       toast.error(error?.response?.data?.message || "Failed to delete blog");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left side: Title */}
-        <h1 className="text-2xl font-bold text-indigo-600">Blogs List</h1>
+    <Card>
+      <PageHeader
+        title="Blogs"
+        subtitle={`${totalItems} post${totalItems === 1 ? "" : "s"} published`}
+      >
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search blogs..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/add-blog")} className="shrink-0">
+          Write a Blog
+        </Button>
+      </PageHeader>
 
-        {/* Right side: Search + Add button */}
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-5">
-          <input
-            type="text"
-            placeholder="Search Blogs..."
-            value={search}
-            onChange={handleSearchChange}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/add-blog")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Write a Blog
-          </button>
-        </div>
-      </div>
+      <TableWrap>
+        <Table minWidth="960px">
+          <THead>
+            <Th className="w-16">#</Th>
+            <Th>Title</Th>
+            <Th>Description</Th>
+            <Th className="w-24">Image</Th>
+            <Th className="w-32">Created</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1120px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left py-2 px-4 font-medium text-gray-700">
-                Sr. No.
-              </th>
-              <th className="text-left py-2 px-4 font-medium text-gray-700">
-                Title
-              </th>
-              <th className="text-left py-2 px-4 font-medium text-gray-700">
-                Description
-              </th>
-              <th className="text-left py-2 px-4 font-medium text-gray-700">
-                Image
-              </th>
-              <th className="text-left py-2 px-4 font-medium text-gray-700">
-                Created At
-              </th>
-              <th className="text-left py-2 px-4 font-medium text-gray-700">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {blogs.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">
-                  No blogs found.
-                </td>
-              </tr>
-            ) : (
-              blogs.map((blog, index) => (
-                <tr key={blog.id}>
-                  <td className="py-2 px-4">
-                    {(page - 1) * limit + index + 1}
-                  </td>{" "}
-                  <td className="py-2 px-4">{blog.title}</td>
-                  <td className="py-2 px-4">{blog.descrip}</td>
-                  <td className="py-2 px-4">
-                    <div className="flex flex-col items-center gap-2">
-                      <a
-                        href={blog.image}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+          {loading ? (
+            <TableSkeleton rows={6} cols={6} />
+          ) : (
+            <TBody>
+              {blogs.length === 0 ? (
+                <tr>
+                  <td colSpan="6">
+                    <EmptyState
+                      icon={Newspaper}
+                      title={debouncedSearch ? "No matching blogs" : "No blogs yet"}
+                      message={
+                        debouncedSearch
+                          ? "Try a different search term."
+                          : "Write your first post — it goes live on the website immediately."
+                      }
+                      action={
+                        !debouncedSearch && (
+                          <Button icon={Plus} onClick={() => navigate("/add-blog")}>
+                            Write a Blog
+                          </Button>
+                        )
+                      }
+                    />
+                  </td>
+                </tr>
+              ) : (
+                blogs.map((blog, index) => (
+                  <Tr key={blog.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td className="font-medium text-gray-900">{blog.title}</Td>
+                    <Td className="max-w-md text-gray-500">
+                      <span className="line-clamp-2">{blog.descrip}</span>
+                    </Td>
+                    <Td>
+                      {blog.image ? (
                         <img
                           src={blog.image}
                           alt={blog.title}
-                          className="w-16 h-16 object-cover rounded border border-gray-300"
+                          className="h-10 w-14 rounded-md border border-gray-200 object-cover"
                         />
-                      </a>
-                    </div>
-                  </td>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap text-gray-500">{fmtDate(blog.created_at)}</Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/edit-blog/${blog.id}`)}
+                        onDelete={() => handleDeleteClick(blog)}
+                        editLabel="Edit blog"
+                        deleteLabel="Delete blog"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
-                  <td className="py-2 px-4">
-                    {new Date(blog.created_at)
-                      .toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })
-                      .toUpperCase()}
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => handleEditClick(blog.id)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(blog.id)} // Pass the blog id here
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      {/* Delete Modal */}
-      <DeleteBlog
+      <ConfirmDeleteModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDelete={handleDeleteConfirmed}
-        itemName={selectedBlog ? selectedBlog.title : ""}
+        title="Delete Blog"
+        itemName={selectedBlog?.title}
+        isChecked={isChecked}
+        setIsChecked={setIsChecked}
+        loading={deleting}
       />
 
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
-    </div>
+      <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+    </Card>
   );
 }
 

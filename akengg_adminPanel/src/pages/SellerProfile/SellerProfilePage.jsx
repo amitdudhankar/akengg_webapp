@@ -7,6 +7,13 @@ import {
   uploadSellerSignature,
 } from "../../api/api";
 import { isValidGstin } from "../../utils/gstin";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import FormActions from "../../components/ui/FormActions";
+
+// Shared control styling, matching components/ui/Field.
+const CONTROL =
+  "w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-sm transition placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100";
 
 const FIELDS = [
   // Company
@@ -61,7 +68,7 @@ const Field = ({ label, name, value, onChange, type = "text", textarea = false, 
         onChange={onChange}
         rows={3}
         placeholder={placeholder}
-        className="w-full rounded-md border border-gray-300 p-2"
+        className={CONTROL}
       />
     ) : (
       <input
@@ -70,7 +77,7 @@ const Field = ({ label, name, value, onChange, type = "text", textarea = false, 
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full rounded-md border border-gray-300 p-2"
+        className={CONTROL}
       />
     )}
   </div>
@@ -197,15 +204,28 @@ const SellerProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-md text-gray-500">
-        Loading seller profile...
-      </div>
+      <Card>
+        <div className="space-y-4">
+          <div className="h-7 w-48 animate-pulse rounded bg-gray-100" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
+                <div className="h-9 animate-pulse rounded-lg bg-gray-100" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="mx-auto w-full rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <h1 className="mb-4 text-2xl font-bold text-indigo-600">Seller Profile</h1>
+    <Card>
+      <PageHeader
+        title="Seller Profile"
+        subtitle="Your company details as they appear on every quotation and invoice."
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <SectionTitle>Company</SectionTitle>
@@ -280,7 +300,7 @@ const SellerProfilePage = () => {
             name="rounding_mode"
             value={formData.rounding_mode}
             onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 p-2"
+            className={CONTROL}
           >
             {ROUNDING_MODES.map((mode) => (
               <option key={mode} value={mode}>
@@ -352,17 +372,9 @@ const SellerProfilePage = () => {
           </p>
         </div>
 
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-[200px]"
-          >
-            {saving ? "Saving..." : "Save Profile"}
-          </button>
-        </div>
+        <FormActions saving={saving} submitLabel="Save Profile" />
       </form>
-    </div>
+    </Card>
   );
 };
 

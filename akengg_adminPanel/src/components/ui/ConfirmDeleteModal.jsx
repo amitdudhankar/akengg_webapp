@@ -1,5 +1,10 @@
-import React from "react";
+import { AlertTriangle } from "lucide-react";
+import Button from "./Button";
 
+/**
+ * Props are unchanged from the original so every existing caller keeps working;
+ * only the presentation was brought in line with the rest of the admin.
+ */
 const ConfirmDeleteModal = ({
   isOpen,
   onClose,
@@ -13,54 +18,53 @@ const ConfirmDeleteModal = ({
   actionLabel = "Delete",
   confirmLabel = "I understand this action cannot be undone",
   description,
+  loading = false,
 }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg sm:p-6">
-        <h2 className="mb-4 text-xl font-semibold text-red-600">{title}</h2>
-        {description ? (
-          <p className="mb-4 text-gray-700">
-            {description}
-            <br />
-            <span className="font-semibold text-black">{itemName}</span>
-          </p>
-        ) : (
-          <p className="mb-4 text-gray-700">
-            Are you sure you want to delete:
-            <br />
-            <span className="font-semibold text-black">{itemName}</span>?
-          </p>
-        )}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 p-4 backdrop-blur-sm"
+    >
+      <div className="w-full max-w-md rounded-xl border border-gray-100 bg-white p-5 shadow-xl sm:p-6">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 id="confirm-modal-title" className="text-base font-semibold text-gray-900">
+              {title}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {description || "Are you sure you want to delete"}{" "}
+              {itemName && (
+                <span className="font-medium text-gray-900">{itemName}</span>
+              )}
+              {description ? "" : "?"}
+            </p>
+          </div>
+        </div>
 
-        <label className="mb-4 flex items-start gap-2 text-sm">
+        <label className="mt-4 flex items-start gap-2.5 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
           <input
             type="checkbox"
             checked={isChecked}
             onChange={() => setIsChecked(!isChecked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
           />
           {confirmLabel}
         </label>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button
-            onClick={onClose}
-            className="w-full rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 sm:w-auto"
-          >
+        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             Cancel
-          </button>
-          <button
-            onClick={onDelete}
-            disabled={!isChecked}
-            className={`w-full rounded-md px-4 py-2 text-white sm:w-auto ${
-              isChecked
-                ? "bg-red-600 hover:bg-red-700"
-                : "cursor-not-allowed bg-red-300"
-            }`}
-          >
+          </Button>
+          <Button variant="danger" onClick={onDelete} disabled={!isChecked} loading={loading}>
             {actionLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

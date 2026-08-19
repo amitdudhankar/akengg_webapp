@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { StepBack } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   getSellerProfile,
@@ -525,7 +525,7 @@ export default function DocumentBuilder() {
   // ── render guards ──────────────────────────────────────────────────────
   if (!config) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-red-600">Unknown document type</h1>
         <p className="mt-2 text-gray-600">
           "{type}" is not a configured document type.
@@ -542,8 +542,14 @@ export default function DocumentBuilder() {
 
   if (loading || !doc) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-md text-gray-500">
-        Loading document...
+      <div className="space-y-4">
+        <div className="h-8 w-64 animate-pulse rounded bg-gray-100" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-40 animate-pulse rounded-xl border border-gray-100 bg-white"
+          />
+        ))}
       </div>
     );
   }
@@ -554,12 +560,12 @@ export default function DocumentBuilder() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate("/documents")}
-          className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+          className="rounded-lg border border-gray-200 p-1.5 text-gray-600 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Back to documents"
         >
-          <StepBack />
+          <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="text-2xl font-bold text-indigo-600">
+        <h1 className="text-2xl font-bold text-gray-900">
           {finalized && docNumber ? `${config.title} ${docNumber}` : `New ${config.title}`}
         </h1>
         {finalized ? (
@@ -619,7 +625,7 @@ export default function DocumentBuilder() {
       ) : null}
 
       {/* Party */}
-      <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
         <PartyPicker
           role={config.partyRole}
           label={config.partyLabel}
@@ -631,7 +637,7 @@ export default function DocumentBuilder() {
       </div>
 
       {/* Meta */}
-      <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
         <DocumentMeta
           value={doc.meta}
           onChange={patchMeta}
@@ -642,8 +648,8 @@ export default function DocumentBuilder() {
       </div>
 
       {/* Line items */}
-      <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">Line Items</h2>
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-3 text-sm font-semibold text-gray-900">Line Items</h2>
         <LineItemsEditor
           items={doc.items}
           onChange={(items) => setDoc((prev) => ({ ...prev, items }))}
@@ -659,7 +665,7 @@ export default function DocumentBuilder() {
 
       {/* Totals + notes/terms */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
           <div className="space-y-4">
             <div>
               <label className="mb-1 block text-base font-medium text-gray-700">Terms</label>
@@ -669,7 +675,7 @@ export default function DocumentBuilder() {
                 onChange={(e) => setDoc((prev) => ({ ...prev, terms: e.target.value }))}
                 rows={3}
                 placeholder="Terms & conditions"
-                className="w-full rounded-md border border-gray-300 p-2 disabled:cursor-not-allowed disabled:bg-gray-100"
+                className="w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-sm transition placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-50"
               />
             </div>
             <div>
@@ -680,13 +686,13 @@ export default function DocumentBuilder() {
                 onChange={(e) => setDoc((prev) => ({ ...prev, notes: e.target.value }))}
                 rows={2}
                 placeholder="Notes (printed on the document)"
-                className="w-full rounded-md border border-gray-300 p-2 disabled:cursor-not-allowed disabled:bg-gray-100"
+                className="w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-sm transition placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-50"
               />
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
           <TotalsPanel
             totals={computed}
             reverseCharge={doc.meta.reverse_charge}
@@ -696,7 +702,7 @@ export default function DocumentBuilder() {
       </div>
 
       {/* Actions */}
-      <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
         <BuilderActions
           status={status}
           finalizeLabel={config.finalizeLabel}

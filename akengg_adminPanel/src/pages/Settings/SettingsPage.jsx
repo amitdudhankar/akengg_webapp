@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { getSettings, updateSettings } from "../../api/api";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import Field from "../../components/ui/Field";
+import FormActions from "../../components/ui/FormActions";
 
 const FIELDS = [
   "company_phone",
@@ -20,33 +24,8 @@ const FIELDS = [
 
 const emptyForm = FIELDS.reduce((acc, field) => ({ ...acc, [field]: "" }), {});
 
-const Field = ({ label, name, value, onChange, type = "text", textarea = false, placeholder }) => (
-  <div className={textarea ? "md:col-span-2" : ""}>
-    <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
-    {textarea ? (
-      <textarea
-        name={name}
-        value={value}
-        onChange={onChange}
-        rows={3}
-        placeholder={placeholder}
-        className="w-full rounded-md border border-gray-300 p-2"
-      />
-    ) : (
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full rounded-md border border-gray-300 p-2"
-      />
-    )}
-  </div>
-);
-
 const SectionTitle = ({ children }) => (
-  <h2 className="md:col-span-2 mt-2 border-b pb-1 text-lg font-semibold text-gray-800">
+  <h2 className="md:col-span-2 mt-3 border-b border-gray-100 pb-2 text-sm font-semibold text-gray-900">
     {children}
   </h2>
 );
@@ -81,6 +60,7 @@ const SettingsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     setSaving(true);
     const loadingToast = toast.loading("Saving settings...");
     try {
@@ -97,51 +77,138 @@ const SettingsPage = () => {
 
   if (loading) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-md text-gray-500">
-        Loading settings...
-      </div>
+      <Card>
+        <div className="space-y-4">
+          <div className="h-7 w-48 animate-pulse rounded bg-gray-100" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
+                <div className="h-9 animate-pulse rounded-lg bg-gray-100" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="mx-auto w-full rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <h1 className="mb-4 text-2xl font-bold text-indigo-600">Site Settings</h1>
+    <Card>
+      <PageHeader
+        title="Site Settings"
+        subtitle="These values feed the public website. Anything left blank falls back to the built-in copy."
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <SectionTitle>Company Info</SectionTitle>
-        <Field label="Phone" name="company_phone" value={formData.company_phone} onChange={handleChange} placeholder="+91 ..." />
-        <Field label="Email" name="company_email" value={formData.company_email} onChange={handleChange} type="email" />
-        <Field label="Address" name="company_address" value={formData.company_address} onChange={handleChange} textarea />
-        <Field label="Business Hours" name="business_hours" value={formData.business_hours} onChange={handleChange} placeholder="Mon-Sat: 9 AM - 6 PM" />
+        <Field
+          label="Phone"
+          name="company_phone"
+          value={formData.company_phone}
+          onChange={handleChange}
+          placeholder="+91 ..."
+        />
+        <Field
+          label="Email"
+          name="company_email"
+          type="email"
+          value={formData.company_email}
+          onChange={handleChange}
+        />
+        <Field
+          label="Address"
+          name="company_address"
+          as="textarea"
+          value={formData.company_address}
+          onChange={handleChange}
+          full
+        />
+        <Field
+          label="Business Hours"
+          name="business_hours"
+          value={formData.business_hours}
+          onChange={handleChange}
+          placeholder="Mon-Sat: 9 AM - 6 PM"
+        />
 
         <SectionTitle>Social Links</SectionTitle>
-        <Field label="LinkedIn URL" name="social_linkedin" value={formData.social_linkedin} onChange={handleChange} />
-        <Field label="Facebook URL" name="social_facebook" value={formData.social_facebook} onChange={handleChange} />
-        <Field label="Instagram URL" name="social_instagram" value={formData.social_instagram} onChange={handleChange} />
+        <Field
+          label="LinkedIn URL"
+          name="social_linkedin"
+          value={formData.social_linkedin}
+          onChange={handleChange}
+        />
+        <Field
+          label="Facebook URL"
+          name="social_facebook"
+          value={formData.social_facebook}
+          onChange={handleChange}
+        />
+        <Field
+          label="Instagram URL"
+          name="social_instagram"
+          value={formData.social_instagram}
+          onChange={handleChange}
+        />
 
         <SectionTitle>Hero Section</SectionTitle>
-        <Field label="Hero Headline" name="hero_headline" value={formData.hero_headline} onChange={handleChange} textarea />
-        <Field label="Hero Subtext" name="hero_subtext" value={formData.hero_subtext} onChange={handleChange} textarea />
+        <Field
+          label="Hero Headline"
+          name="hero_headline"
+          as="textarea"
+          value={formData.hero_headline}
+          onChange={handleChange}
+          full
+        />
+        <Field
+          label="Hero Subtext"
+          name="hero_subtext"
+          as="textarea"
+          value={formData.hero_subtext}
+          onChange={handleChange}
+          full
+        />
 
         <SectionTitle>About</SectionTitle>
-        <Field label="Founding Year" name="founding_year" value={formData.founding_year} onChange={handleChange} placeholder="2005" />
-        <Field label="About Text" name="about_text" value={formData.about_text} onChange={handleChange} textarea />
+        <Field
+          label="Founding Year"
+          name="founding_year"
+          value={formData.founding_year}
+          onChange={handleChange}
+          placeholder="2005"
+        />
+        <Field
+          label="About Text"
+          name="about_text"
+          as="textarea"
+          value={formData.about_text}
+          onChange={handleChange}
+          full
+        />
 
-        <SectionTitle>Footer & Map</SectionTitle>
-        <Field label="Footer Description" name="footer_description" value={formData.footer_description} onChange={handleChange} textarea />
-        <Field label="Google Maps Embed URL" name="map_embed_url" value={formData.map_embed_url} onChange={handleChange} textarea />
+        <SectionTitle>Footer &amp; Map</SectionTitle>
+        <Field
+          label="Footer Description"
+          name="footer_description"
+          as="textarea"
+          value={formData.footer_description}
+          onChange={handleChange}
+          full
+        />
+        <Field
+          label="Google Maps Embed URL"
+          name="map_embed_url"
+          as="textarea"
+          value={formData.map_embed_url}
+          onChange={handleChange}
+          hint="Paste the src URL from a Google Maps embed. Shown on the contact page."
+          full
+        />
 
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-[200px]"
-          >
-            {saving ? "Saving..." : "Save Settings"}
-          </button>
-        </div>
+        <FormActions saving={saving} submitLabel="Save Settings" />
       </form>
-    </div>
+    </Card>
   );
 };
 

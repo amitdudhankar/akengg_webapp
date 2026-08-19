@@ -1,4 +1,3 @@
-import { StepBack } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -8,6 +7,10 @@ import {
   updateCatalogItem,
 } from "../../api/api";
 import { GST_RATE_OPTIONS, UQC_OPTIONS } from "../../config/docConfig";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import Field from "../../components/ui/Field";
+import FormActions from "../../components/ui/FormActions";
 
 const EMPTY = {
   kind: "goods",
@@ -20,13 +23,17 @@ const EMPTY = {
   is_active: true,
 };
 
-const inputCls = "w-full rounded-md border border-gray-300 p-2";
+const KIND_OPTIONS = [
+  { value: "goods", label: "Goods" },
+  { value: "service", label: "Service" },
+];
 
 const CatalogForm = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const [formData, setFormData] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -65,6 +72,8 @@ const CatalogForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     const loadingToast = toast.loading(isEdit ? "Updating item..." : "Creating item...");
 
     const payload = {
@@ -92,141 +101,104 @@ const CatalogForm = () => {
       toast.error(error?.response?.data?.message || "Failed to save item", {
         id: loadingToast,
       });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="mx-auto h-auto w-full rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
-        >
-          <StepBack />
-        </button>
-        <h1 className="text-2xl font-bold text-indigo-600">
-          {isEdit ? "Update Item" : "Add a Catalog Item"}
-        </h1>
-      </div>
+    <Card>
+      <PageHeader
+        title={isEdit ? "Update Item" : "Add a Catalog Item"}
+        subtitle="Saved items autocomplete when you build a document."
+        onBack={() => navigate(-1)}
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">Kind</label>
-          <select name="kind" value={formData.kind} onChange={handleChange} className={inputCls}>
-            <option value="goods">Goods</option>
-            <option value="service">Service</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">Name</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Item / service name"
-            required
-            className={inputCls}
-          />
-        </div>
+        <Field
+          label="Kind"
+          name="kind"
+          as="select"
+          options={KIND_OPTIONS}
+          value={formData.kind}
+          onChange={handleChange}
+        />
+        <Field
+          label="Name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="Item or service name"
+          required
+        />
+        <Field
+          label="Description"
+          name="description"
+          as="textarea"
+          rows={2}
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Optional line description"
+          full
+        />
+        <Field
+          label="HSN / SAC"
+          name="hsn_sac"
+          value={formData.hsn_sac}
+          onChange={handleChange}
+          placeholder="e.g. 8402"
+        />
+        <Field
+          label="UQC"
+          name="uqc"
+          as="select"
+          options={UQC_OPTIONS.map((u) => ({ value: u, label: u }))}
+          value={formData.uqc}
+          onChange={handleChange}
+          hint="Unit quantity code printed on the invoice."
+        />
+        <Field
+          label="Default Rate"
+          name="default_rate"
+          type="number"
+          step="0.01"
+          value={formData.default_rate}
+          onChange={handleChange}
+          placeholder="0.00"
+        />
+        <Field
+          label="Default GST %"
+          name="default_gst_rate"
+          as="select"
+          options={GST_RATE_OPTIONS.map((r) => ({ value: r, label: `${r}%` }))}
+          value={formData.default_gst_rate}
+          onChange={handleChange}
+        />
 
         <div className="md:col-span-2">
-          <label className="mb-1 block text-base font-medium text-gray-700">Description</label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={2}
-            placeholder="Optional description"
-            className={inputCls}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">HSN / SAC</label>
-          <input
-            type="text"
-            name="hsn_sac"
-            value={formData.hsn_sac}
-            onChange={handleChange}
-            placeholder="e.g. 8471"
-            className={inputCls}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">UQC (Unit)</label>
-          <input
-            type="text"
-            name="uqc"
-            list="catalog-uqc-options"
-            value={formData.uqc}
-            onChange={handleChange}
-            placeholder="NOS"
-            className={inputCls}
-          />
-          <datalist id="catalog-uqc-options">
-            {UQC_OPTIONS.map((u) => (
-              <option key={u} value={u} />
-            ))}
-          </datalist>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">Default Rate</label>
-          <input
-            type="number"
-            min="0"
-            step="any"
-            name="default_rate"
-            value={formData.default_rate}
-            onChange={handleChange}
-            placeholder="0.00"
-            className={inputCls}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">Default GST Rate</label>
-          <select
-            name="default_gst_rate"
-            value={formData.default_gst_rate}
-            onChange={handleChange}
-            className={inputCls}
+          <label
+            htmlFor="is_active"
+            className="inline-flex cursor-pointer items-center gap-2.5 rounded-lg bg-gray-50 px-3 py-2.5 text-sm text-gray-700"
           >
-            {GST_RATE_OPTIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}%
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="is_active"
-            name="is_active"
-            checked={formData.is_active}
-            onChange={handleChange}
-            className="h-4 w-4 rounded border-gray-300"
-          />
-          <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
-            Active
+            <input
+              id="is_active"
+              name="is_active"
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            Active — available to pick when building a document
           </label>
         </div>
 
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-[200px]"
-          >
-            {isEdit ? "Update Item" : "Submit"}
-          </button>
-        </div>
+        <FormActions
+          saving={saving}
+          submitLabel={isEdit ? "Update Item" : "Create Item"}
+          onCancel={() => navigate("/catalog")}
+        />
       </form>
-    </div>
+    </Card>
   );
 };
 

@@ -1,14 +1,41 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { Plus, ShieldCheck } from "lucide-react";
 import { fetchUsers, deleteUser } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
-import { Pencil, Trash2 } from "lucide-react";
-import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
+
+const ROLE_STYLES = {
+  admin: "bg-indigo-100 text-indigo-700",
+  employee: "bg-sky-100 text-sky-700",
+};
+
+function RoleBadge({ role }) {
+  const key = String(role || "").toLowerCase();
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+        ROLE_STYLES[key] || "bg-slate-100 text-slate-600"
+      }`}
+    >
+      {role || "—"}
+    </span>
+  );
+}
 
 function Users() {
   const navigate = useNavigate();
   const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
@@ -16,16 +43,16 @@ function Users() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const getUsers = async () => {
     try {
       const response = await fetchUsers();
-      const usersData = response?.data?.data || [];
-
-      setAllUsers(usersData);
+      setAllUsers(response?.data?.data || []);
     } catch (error) {
-      console.error("Error fetching users:", error);
       toast.error(error?.response?.data?.message || "Failed to fetch users");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,40 +60,24 @@ function Users() {
     getUsers();
   }, []);
 
-  const filteredUsers = allUsers.filter((user) => {
+  const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
+    if (!query) return allUsers;
 
-    if (!query) {
-      return true;
-    }
-
-    return [user.name, user.email, user.phone, user.role]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(query));
-  });
+    return allUsers.filter((user) =>
+      [user.name, user.email, user.phone, user.role]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(query))
+    );
+  }, [allUsers, search]);
 
   useEffect(() => {
     const nextTotalPages = Math.max(1, Math.ceil(filteredUsers.length / limit));
-
     setTotalPages(nextTotalPages);
     setPage((currentPage) => Math.min(currentPage, nextTotalPages));
   }, [filteredUsers.length, limit]);
 
-  const paginatedUsers = filteredUsers.slice(
-    (page - 1) * limit,
-    page * limit
-  );
-
-  const handlePageChange = (pageNumber) => setPage(pageNumber);
-
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
-
-  const handleEditClick = (id) => {
-    navigate(`/edit-users/${id}`);
-  };
+  const paginatedUsers = filteredUsers.slice((page - 1) * limit, page * limit);
 
   const handleDeleteClick = (user) => {
     setSelectedUser(user);
@@ -79,117 +90,116 @@ function Users() {
       toast.error("You must confirm the deletion.");
       return;
     }
-
     if (!selectedUser?.id) {
       toast.error("No user selected for deletion.");
       return;
     }
-
+    setDeleting(true);
     try {
       const response = await deleteUser(selectedUser.id);
-
       toast.success(response?.data?.message || "User deleted successfully!");
       setIsModalOpen(false);
       setSelectedUser(null);
       getUsers();
     } catch (error) {
-      const message =
-        error?.response?.data?.message || "Failed to delete user.";
-      toast.error(message);
+      toast.error(error?.response?.data?.message || "Failed to delete user.");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Users</h1>
+    <Card>
+      <PageHeader
+        title="Users"
+        subtitle={`${allUsers.length} account${allUsers.length === 1 ? "" : "s"} with admin access`}
+      >
+        <SearchInput
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search users..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/add-users")} className="shrink-0">
+          Add User
+        </Button>
+      </PageHeader>
 
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-5">
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={search}
-            onChange={handleSearchChange}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/add-users")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Add User
-          </button>
-        </div>
-      </div>
+      <TableWrap>
+        <Table minWidth="680px">
+          <THead>
+            <Th>Full Name</Th>
+            <Th>Email</Th>
+            <Th>Phone</Th>
+            <Th className="w-32">Role</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left px-4 py-2 font-medium text-gray-700">
-                Full Name
-              </th>
-              <th className="text-left px-4 py-2 font-medium text-gray-700">
-                Email
-              </th>
-              <th className="text-left px-4 py-2 font-medium text-gray-700">
-                Phone Number
-              </th>
-              <th className="text-left px-4 py-2 font-medium text-gray-700">
-                Role
-              </th>
-              <th className="text-left px-4 py-2 font-medium text-gray-700">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {paginatedUsers.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="py-4 text-center text-gray-500">
-                  No users found.
-                </td>
-              </tr>
-            ) : (
-              paginatedUsers.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-4 py-2">{user.name}</td>
-                  <td className="px-4 py-2">{user.email}</td>
-                  <td className="px-4 py-2">{user.phone}</td>
-                  <td className="px-4 py-2 capitalize">{user.role}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => handleEditClick(user.id)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(user)}
-                      />
-                    </div>
+          {loading ? (
+            <TableSkeleton rows={5} cols={5} />
+          ) : (
+            <TBody>
+              {paginatedUsers.length === 0 ? (
+                <tr>
+                  <td colSpan="5">
+                    <EmptyState
+                      icon={ShieldCheck}
+                      title={search ? "No matching users" : "No users yet"}
+                      message={
+                        search
+                          ? "Try a different search term."
+                          : "Add an account so a colleague can sign in."
+                      }
+                      action={
+                        !search && (
+                          <Button icon={Plus} onClick={() => navigate("/add-users")}>
+                            Add User
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                paginatedUsers.map((user) => (
+                  <Tr key={user.id}>
+                    <Td className="font-medium text-gray-900">{user.name}</Td>
+                    <Td className="text-gray-500">{user.email}</Td>
+                    <Td className="whitespace-nowrap text-gray-500">{user.phone}</Td>
+                    <Td>
+                      <RoleBadge role={user.role} />
+                    </Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/edit-users/${user.id}`)}
+                        onDelete={() => handleDeleteClick(user)}
+                        editLabel="Edit user"
+                        deleteLabel="Delete user"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
-      <DeleteConfirmationModal
+      <ConfirmDeleteModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDelete={handleDeleteConfirmed}
+        title="Delete User"
+        itemName={selectedUser?.email}
         isChecked={isChecked}
         setIsChecked={setIsChecked}
-        email={selectedUser?.email}
+        loading={deleting}
       />
 
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
-    </div>
+      <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+    </Card>
   );
 }
 

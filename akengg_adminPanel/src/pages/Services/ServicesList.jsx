@@ -1,14 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Pencil, Trash2 } from "lucide-react";
+import { Plus, Wrench } from "lucide-react";
 import { fetchServices, deleteService } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 
 function ServicesList() {
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
@@ -16,6 +25,7 @@ function ServicesList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const getServices = async () => {
     try {
@@ -23,6 +33,8 @@ function ServicesList() {
       setServices(res?.data?.data || []);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch services");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,6 +72,7 @@ function ServicesList() {
       return;
     }
     if (!selected?.id) return;
+    setDeleting(true);
     try {
       const res = await deleteService(selected.id);
       toast.success(res?.data?.message || "Service deleted successfully");
@@ -68,88 +81,99 @@ function ServicesList() {
       getServices();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to delete service");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Services</h1>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-5">
-          <input
-            type="text"
-            placeholder="Search services..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/services/add")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Add Service
-          </button>
-        </div>
-      </div>
+    <Card>
+      <PageHeader
+        title="Services"
+        subtitle={`${services.length} service${services.length === 1 ? "" : "s"} on the website`}
+      >
+        <SearchInput
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search services..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/services/add")} className="shrink-0">
+          Add Service
+        </Button>
+      </PageHeader>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Sr. No</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Title</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Description</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Image</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Order</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {paginated.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-4 text-center text-gray-500">
-                  No services found.
-                </td>
-              </tr>
-            ) : (
-              paginated.map((service, index) => (
-                <tr key={service.id}>
-                  <td className="px-4 py-2">{(page - 1) * limit + index + 1}</td>
-                  <td className="px-4 py-2">{service.title}</td>
-                  <td className="px-4 py-2">{service.description}</td>
-                  <td className="px-4 py-2">
-                    {service.image ? (
-                      <img
-                        src={service.image}
-                        alt={service.title}
-                        className="h-12 w-16 rounded border border-gray-300 object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{service.sort_order}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => navigate(`/services/edit/${service.id}`)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(service)}
-                      />
-                    </div>
+      <TableWrap>
+        <Table>
+          <THead>
+            <Th className="w-16">#</Th>
+            <Th>Title</Th>
+            <Th>Description</Th>
+            <Th className="w-24">Image</Th>
+            <Th className="w-20">Order</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
+
+          {loading ? (
+            <TableSkeleton rows={6} cols={6} />
+          ) : (
+            <TBody>
+              {paginated.length === 0 ? (
+                <tr>
+                  <td colSpan="6">
+                    <EmptyState
+                      icon={Wrench}
+                      title={search ? "No matching services" : "No services yet"}
+                      message={
+                        search
+                          ? "Try a different search term."
+                          : "Add a service and it appears on the website straight away."
+                      }
+                      action={
+                        !search && (
+                          <Button icon={Plus} onClick={() => navigate("/services/add")}>
+                            Add Service
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                paginated.map((service, index) => (
+                  <Tr key={service.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td className="font-medium text-gray-900">{service.title}</Td>
+                    <Td className="max-w-md truncate text-gray-500">{service.description}</Td>
+                    <Td>
+                      {service.image ? (
+                        <img
+                          src={service.image}
+                          alt={service.title}
+                          className="h-10 w-14 rounded-md border border-gray-200 object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </Td>
+                    <Td className="text-gray-500">{service.sort_order}</Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/services/edit/${service.id}`)}
+                        onDelete={() => handleDeleteClick(service)}
+                        editLabel="Edit service"
+                        deleteLabel="Delete service"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
       <ConfirmDeleteModal
         isOpen={isModalOpen}
@@ -159,10 +183,11 @@ function ServicesList() {
         itemName={selected?.title}
         isChecked={isChecked}
         setIsChecked={setIsChecked}
+        loading={deleting}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-    </div>
+    </Card>
   );
 }
 

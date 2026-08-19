@@ -1,8 +1,12 @@
-import { StepBack } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { addProject, getProjectById, updateProject } from "../../api/api";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import Field from "../../components/ui/Field";
+import ImageField from "../../components/ui/ImageField";
+import FormActions from "../../components/ui/FormActions";
 
 const EMPTY = {
   title: "",
@@ -19,6 +23,7 @@ const ProjectForm = () => {
   const navigate = useNavigate();
   const [previewImage, setPreviewImage] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -58,6 +63,8 @@ const ProjectForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     const loadingToast = toast.loading(isEdit ? "Updating project..." : "Creating project...");
 
     const payload = new FormData();
@@ -82,118 +89,73 @@ const ProjectForm = () => {
       toast.error(error?.response?.data?.message || "Failed to save project", {
         id: loadingToast,
       });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="mx-auto h-auto w-full rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
-        >
-          <StepBack />
-        </button>
-        <h1 className="text-2xl font-bold text-indigo-600">
-          {isEdit ? "Update Project" : "Add a Project"}
-        </h1>
-      </div>
+    <Card>
+      <PageHeader
+        title={isEdit ? "Update Project" : "Add a Project"}
+        subtitle="Shown on the website projects page."
+        onBack={() => navigate(-1)}
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-base font-medium">Title</label>
-          <input
-            type="text"
-            name="title"
-            placeholder="Project title"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
+        <Field
+          label="Title"
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          placeholder="Project title"
+          required
+        />
+        <Field
+          label="Industry"
+          name="industry"
+          value={formData.industry}
+          onChange={handleChange}
+          placeholder="e.g. Pharmaceutical"
+        />
+        <Field
+          label="Description"
+          name="description"
+          as="textarea"
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="What the project involved"
+          full
+        />
+        <Field
+          label="Features"
+          name="features"
+          as="textarea"
+          rows={4}
+          value={formData.features}
+          onChange={handleChange}
+          placeholder="One feature per line"
+          hint="Enter one feature per line."
+          full
+        />
+        <Field
+          label="Sort Order"
+          name="sort_order"
+          type="number"
+          value={formData.sort_order}
+          onChange={handleChange}
+          hint="Lower numbers appear first."
+        />
 
-        <div>
-          <label className="mb-1 block text-base font-medium">Industry</label>
-          <input
-            type="text"
-            name="industry"
-            placeholder="e.g. Pharmaceutical"
-            value={formData.industry}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
+        <ImageField preview={previewImage} onChange={handleImageChange} isEdit={isEdit} />
 
-        <div className="md:col-span-2">
-          <label className="mb-1 block text-base font-medium">Description</label>
-          <textarea
-            name="description"
-            placeholder="Project description"
-            value={formData.description}
-            onChange={handleChange}
-            required
-            rows={3}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="mb-1 block text-base font-medium">Features</label>
-          <textarea
-            name="features"
-            placeholder="One feature per line"
-            value={formData.features}
-            onChange={handleChange}
-            rows={4}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-          <p className="mt-1 text-xs text-gray-500">Enter one feature per line.</p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium">Sort Order</label>
-          <input
-            type="number"
-            name="sort_order"
-            value={formData.sort_order}
-            onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="mb-2 block text-base font-semibold text-gray-700">
-            Image {isEdit ? "(leave empty to keep current)" : ""}
-          </label>
-          {previewImage ? (
-            <div className="mb-3 flex justify-center">
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="h-40 w-auto rounded-md border border-gray-200 object-contain shadow"
-              />
-            </div>
-          ) : null}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-[200px]"
-          >
-            {isEdit ? "Update Project" : "Submit"}
-          </button>
-        </div>
+        <FormActions
+          saving={saving}
+          submitLabel={isEdit ? "Update Project" : "Create Project"}
+          onCancel={() => navigate("/projects")}
+        />
       </form>
-    </div>
+    </Card>
   );
 };
 

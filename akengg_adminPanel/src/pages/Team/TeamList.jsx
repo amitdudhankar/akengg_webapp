@@ -1,14 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Pencil, Trash2 } from "lucide-react";
+import { Plus, UsersRound } from "lucide-react";
 import { fetchTeam, deleteTeamMember } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 
 function TeamList() {
   const navigate = useNavigate();
   const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
@@ -16,6 +25,7 @@ function TeamList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const getMembers = async () => {
     try {
@@ -23,6 +33,8 @@ function TeamList() {
       setMembers(res?.data?.data || []);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch team members");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,6 +72,7 @@ function TeamList() {
       return;
     }
     if (!selected?.id) return;
+    setDeleting(true);
     try {
       const res = await deleteTeamMember(selected.id);
       toast.success(res?.data?.message || "Team member deleted successfully");
@@ -68,88 +81,99 @@ function TeamList() {
       getMembers();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to delete team member");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Team Members</h1>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-5">
-          <input
-            type="text"
-            placeholder="Search team..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/team/add")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Add Member
-          </button>
-        </div>
-      </div>
+    <Card>
+      <PageHeader
+        title="Team Members"
+        subtitle={`${members.length} member${members.length === 1 ? "" : "s"}`}
+      >
+        <SearchInput
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search team..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/team/add")} className="shrink-0">
+          Add Member
+        </Button>
+      </PageHeader>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Sr. No</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Photo</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Title</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Order</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {paginated.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-4 text-center text-gray-500">
-                  No team members found.
-                </td>
-              </tr>
-            ) : (
-              paginated.map((member, index) => (
-                <tr key={member.id}>
-                  <td className="px-4 py-2">{(page - 1) * limit + index + 1}</td>
-                  <td className="px-4 py-2">
-                    {member.image ? (
-                      <img
-                        src={member.image}
-                        alt={member.name}
-                        className="h-12 w-12 rounded-full border border-gray-300 object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{member.name}</td>
-                  <td className="px-4 py-2">{member.title || "—"}</td>
-                  <td className="px-4 py-2">{member.sort_order}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => navigate(`/team/edit/${member.id}`)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(member)}
-                      />
-                    </div>
+      <TableWrap>
+        <Table>
+          <THead>
+            <Th className="w-16">#</Th>
+            <Th className="w-20">Photo</Th>
+            <Th>Name</Th>
+            <Th>Title</Th>
+            <Th className="w-20">Order</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
+
+          {loading ? (
+            <TableSkeleton rows={6} cols={6} />
+          ) : (
+            <TBody>
+              {paginated.length === 0 ? (
+                <tr>
+                  <td colSpan="6">
+                    <EmptyState
+                      icon={UsersRound}
+                      title={search ? "No matching members" : "No team members yet"}
+                      message={
+                        search ? "Try a different search term." : "Add the people behind the company."
+                      }
+                      action={
+                        !search && (
+                          <Button icon={Plus} onClick={() => navigate("/team/add")}>
+                            Add Member
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                paginated.map((member, index) => (
+                  <Tr key={member.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td>
+                      {member.image ? (
+                        <img
+                          src={member.image}
+                          alt={member.name}
+                          className="h-10 w-10 rounded-full border border-gray-200 object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-10 w-10 place-items-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-600">
+                          {String(member.name || "?").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </Td>
+                    <Td className="font-medium text-gray-900">{member.name}</Td>
+                    <Td className="text-gray-500">{member.title || "—"}</Td>
+                    <Td className="text-gray-500">{member.sort_order}</Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/team/edit/${member.id}`)}
+                        onDelete={() => handleDeleteClick(member)}
+                        editLabel="Edit team member"
+                        deleteLabel="Delete team member"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
       <ConfirmDeleteModal
         isOpen={isModalOpen}
@@ -159,10 +183,11 @@ function TeamList() {
         itemName={selected?.name}
         isChecked={isChecked}
         setIsChecked={setIsChecked}
+        loading={deleting}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-    </div>
+    </Card>
   );
 }
 

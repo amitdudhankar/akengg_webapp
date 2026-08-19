@@ -1,6 +1,6 @@
 import { formatINR } from "../../utils/money";
 import { formatDateDisplay } from "../../utils/date";
-import StatusBadge from "./StatusBadge";
+import StatusBadge from "../ui/StatusBadge";
 
 const TYPE_LABELS = {
   quotation: "Quotation",

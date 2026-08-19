@@ -1,8 +1,11 @@
-import { StepBack } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { addIndustryStat, getIndustryStatById, updateIndustryStat } from "../../api/api";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import Field from "../../components/ui/Field";
+import FormActions from "../../components/ui/FormActions";
 
 const EMPTY = {
   name: "",
@@ -16,6 +19,7 @@ const IndustryStatForm = () => {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const [formData, setFormData] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -46,6 +50,8 @@ const IndustryStatForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     const loadingToast = toast.loading(isEdit ? "Updating..." : "Creating...");
 
     const payload = {
@@ -69,82 +75,75 @@ const IndustryStatForm = () => {
       toast.error(error?.response?.data?.message || "Failed to save industry stat", {
         id: loadingToast,
       });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="mx-auto h-auto w-full rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
-        >
-          <StepBack />
-        </button>
-        <h1 className="text-2xl font-bold text-indigo-600">
-          {isEdit ? "Update Industry Stat" : "Add Industry Stat"}
-        </h1>
-      </div>
+    <Card>
+      <PageHeader
+        title={isEdit ? "Update Industry Stat" : "Add an Industry Stat"}
+        subtitle="Drives the industry breakdown on the website projects page."
+        onBack={() => navigate(-1)}
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Field
+          label="Industry"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="e.g. Pharmaceutical"
+          required
+        />
+        <Field
+          label="Count"
+          name="count"
+          type="number"
+          value={formData.count}
+          onChange={handleChange}
+          hint="Number of projects delivered in this industry."
+        />
         <div>
-          <label className="mb-1 block text-base font-medium">Industry Name</label>
-          <input
-            type="text"
-            name="name"
-            placeholder="e.g. Pharmaceutical"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
+          <label htmlFor="color" className="mb-1 block text-sm font-medium text-gray-700">
+            Color
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={/^#[0-9a-f]{6}$/i.test(formData.color) ? formData.color : "#4f46e5"}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              aria-label="Pick a colour"
+              className="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-gray-200 bg-white p-1"
+            />
+            <input
+              id="color"
+              name="color"
+              value={formData.color}
+              onChange={handleChange}
+              placeholder="#4f46e5"
+              className="w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-sm transition placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">Used for this industry&apos;s bar colour.</p>
         </div>
+        <Field
+          label="Sort Order"
+          name="sort_order"
+          type="number"
+          value={formData.sort_order}
+          onChange={handleChange}
+          hint="Lower numbers appear first."
+        />
 
-        <div>
-          <label className="mb-1 block text-base font-medium">Project Count</label>
-          <input
-            type="number"
-            name="count"
-            min="0"
-            value={formData.count}
-            onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium">Color (optional)</label>
-          <input
-            type="text"
-            name="color"
-            placeholder="e.g. #F4C542"
-            value={formData.color}
-            onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-base font-medium">Sort Order</label>
-          <input
-            type="number"
-            name="sort_order"
-            value={formData.sort_order}
-            onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-[200px]"
-          >
-            {isEdit ? "Update" : "Submit"}
-          </button>
-        </div>
+        <FormActions
+          saving={saving}
+          submitLabel={isEdit ? "Update Stat" : "Create Stat"}
+          onCancel={() => navigate("/industry-stats")}
+        />
       </form>
-    </div>
+    </Card>
   );
 };
 

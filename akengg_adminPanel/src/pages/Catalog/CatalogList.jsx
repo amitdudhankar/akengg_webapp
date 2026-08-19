@@ -1,17 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Pencil, Trash2 } from "lucide-react";
+import { Plus, Package } from "lucide-react";
 import { fetchCatalog, deleteCatalogItem } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import StatusBadge from "../../components/ui/StatusBadge";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 import { formatINR } from "../../utils/money";
+
+const selectClass =
+  "w-full rounded-lg border border-gray-200 p-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:w-auto";
 
 function CatalogList() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [kindFilter, setKindFilter] = useState("");
@@ -21,6 +35,7 @@ function CatalogList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Debounce the search box so we don't refetch on every keystroke.
   useEffect(() => {
@@ -32,6 +47,7 @@ function CatalogList() {
   }, [search]);
 
   const getCatalog = async () => {
+    setLoading(true);
     try {
       const res = await fetchCatalog({
         kind: kindFilter || undefined,
@@ -42,8 +58,11 @@ function CatalogList() {
       });
       setItems(res?.data?.data || []);
       setTotalPages(res?.data?.pagination?.totalPages || 1);
+      setTotalItems(res?.data?.pagination?.totalItems ?? 0);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch catalog");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,6 +88,7 @@ function CatalogList() {
       return;
     }
     if (!selected?.id) return;
+    setDeleting(true);
     try {
       const res = await deleteCatalogItem(selected.id);
       toast.success(res?.data?.message || "Item deleted successfully");
@@ -77,118 +97,130 @@ function CatalogList() {
       getCatalog();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to delete item");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Item Catalog</h1>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-          <select
-            value={kindFilter}
-            onChange={(e) => {
-              setKindFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:w-auto"
-          >
-            <option value="">All kinds</option>
-            <option value="goods">Goods</option>
-            <option value="service">Service</option>
-          </select>
-          <select
-            value={activeFilter}
-            onChange={(e) => {
-              setActiveFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:w-auto"
-          >
-            <option value="">All statuses</option>
-            <option value="1">Active</option>
-            <option value="0">Inactive</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Search catalog..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/catalog/add")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Add Item
-          </button>
-        </div>
-      </div>
+  const hasFilters = Boolean(debouncedSearch || kindFilter || activeFilter);
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Sr. No</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Kind</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">HSN/SAC</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">UQC</th>
-              <th className="px-4 py-2 text-right font-medium text-gray-700">Rate</th>
-              <th className="px-4 py-2 text-right font-medium text-gray-700">GST %</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Active</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan="9" className="py-4 text-center text-gray-500">
-                  No items found.
-                </td>
-              </tr>
-            ) : (
-              items.map((item, index) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-2">{(page - 1) * limit + index + 1}</td>
-                  <td className="px-4 py-2 font-medium text-gray-900">{item.name}</td>
-                  <td className="px-4 py-2 capitalize">{item.kind}</td>
-                  <td className="px-4 py-2">{item.hsn_sac || <span className="text-gray-400">—</span>}</td>
-                  <td className="px-4 py-2">{item.uqc || <span className="text-gray-400">—</span>}</td>
-                  <td className="px-4 py-2 text-right">{formatINR(item.default_rate)}</td>
-                  <td className="px-4 py-2 text-right">{Number(item.default_gst_rate)}%</td>
-                  <td className="px-4 py-2">
-                    {Number(item.is_active) ? (
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => navigate(`/catalog/edit/${item.id}`)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(item)}
-                      />
-                    </div>
+  return (
+    <Card>
+      <PageHeader
+        title="Item Catalog"
+        subtitle={`${totalItems} item${totalItems === 1 ? "" : "s"} available to documents`}
+      >
+        <select
+          value={kindFilter}
+          onChange={(e) => {
+            setKindFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by kind"
+          className={selectClass}
+        >
+          <option value="">All kinds</option>
+          <option value="goods">Goods</option>
+          <option value="service">Service</option>
+        </select>
+        <select
+          value={activeFilter}
+          onChange={(e) => {
+            setActiveFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by status"
+          className={selectClass}
+        >
+          <option value="">All statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search catalog..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/catalog/add")} className="shrink-0">
+          Add Item
+        </Button>
+      </PageHeader>
+
+      <TableWrap>
+        <Table minWidth="980px">
+          <THead>
+            <Th className="w-16">#</Th>
+            <Th>Name</Th>
+            <Th className="w-24">Kind</Th>
+            <Th className="w-28">HSN/SAC</Th>
+            <Th className="w-20">UQC</Th>
+            <Th className="w-28 text-right">Rate</Th>
+            <Th className="w-20 text-right">GST %</Th>
+            <Th className="w-28">Active</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
+
+          {loading ? (
+            <TableSkeleton rows={6} cols={9} />
+          ) : (
+            <TBody>
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan="9">
+                    <EmptyState
+                      icon={Package}
+                      title={hasFilters ? "No matching items" : "No catalog items yet"}
+                      message={
+                        hasFilters
+                          ? "Try a different search term or clear the filters."
+                          : "Saved items autocomplete when you build a document."
+                      }
+                      action={
+                        !hasFilters && (
+                          <Button icon={Plus} onClick={() => navigate("/catalog/add")}>
+                            Add Item
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                items.map((item, index) => (
+                  <Tr key={item.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td className="font-medium text-gray-900">{item.name}</Td>
+                    <Td className="capitalize text-gray-500">{item.kind}</Td>
+                    <Td className="text-gray-500">
+                      {item.hsn_sac || <span className="text-gray-300">—</span>}
+                    </Td>
+                    <Td className="text-gray-500">
+                      {item.uqc || <span className="text-gray-300">—</span>}
+                    </Td>
+                    <Td className="whitespace-nowrap text-right font-medium text-gray-800">
+                      {formatINR(item.default_rate)}
+                    </Td>
+                    <Td className="text-right text-gray-500">
+                      {Number(item.default_gst_rate)}%
+                    </Td>
+                    <Td>
+                      <StatusBadge status={Number(item.is_active) ? "active" : "inactive"} />
+                    </Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/catalog/edit/${item.id}`)}
+                        onDelete={() => handleDeleteClick(item)}
+                        editLabel="Edit item"
+                        deleteLabel="Delete item"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
       <ConfirmDeleteModal
         isOpen={isModalOpen}
@@ -199,10 +231,11 @@ function CatalogList() {
         itemName={selected?.name}
         isChecked={isChecked}
         setIsChecked={setIsChecked}
+        loading={deleting}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-    </div>
+    </Card>
   );
 }
 

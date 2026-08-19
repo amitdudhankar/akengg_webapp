@@ -19,7 +19,7 @@ import useDashboardData from "../hooks/useDashboardData";
 import { formatINR } from "../utils/money";
 import StatCard from "../components/dashboard/StatCard";
 import Panel from "../components/dashboard/Panel";
-import StatusBadge from "../components/dashboard/StatusBadge";
+import StatusBadge from "../components/ui/StatusBadge";
 import DocTypeBreakdown from "../components/dashboard/DocTypeBreakdown";
 import RecentDocuments from "../components/dashboard/RecentDocuments";
 import RecentLeads from "../components/dashboard/RecentLeads";

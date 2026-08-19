@@ -1,16 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Pencil, Trash2 } from "lucide-react";
+import { Plus, Building2 } from "lucide-react";
 import { fetchParties, deleteParty } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import StatusBadge from "../../components/ui/StatusBadge";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
+
+const selectClass =
+  "w-full rounded-lg border border-gray-200 p-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:w-auto";
 
 function PartiesList() {
   const navigate = useNavigate();
   const [parties, setParties] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -20,6 +34,7 @@ function PartiesList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Debounce the search box so we don't refetch on every keystroke.
   useEffect(() => {
@@ -31,6 +46,7 @@ function PartiesList() {
   }, [search]);
 
   const getParties = async () => {
+    setLoading(true);
     try {
       const res = await fetchParties({
         type: typeFilter || undefined,
@@ -41,8 +57,11 @@ function PartiesList() {
       });
       setParties(res?.data?.data || []);
       setTotalPages(res?.data?.pagination?.totalPages || 1);
+      setTotalItems(res?.data?.pagination?.totalItems ?? 0);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch parties");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,6 +87,7 @@ function PartiesList() {
       return;
     }
     if (!selected?.id) return;
+    setDeleting(true);
     try {
       const res = await deleteParty(selected.id);
       toast.success(res?.data?.message || "Party deleted successfully");
@@ -76,130 +96,130 @@ function PartiesList() {
       getParties();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to delete party");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Parties</h1>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:w-auto"
-          >
-            <option value="">All types</option>
-            <option value="client">Client</option>
-            <option value="vendor">Vendor</option>
-          </select>
-          <select
-            value={activeFilter}
-            onChange={(e) => {
-              setActiveFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:w-auto"
-          >
-            <option value="">All statuses</option>
-            <option value="1">Active</option>
-            <option value="0">Inactive</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Search parties..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/parties/add")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Add Party
-          </button>
-        </div>
-      </div>
+  const hasFilters = Boolean(debouncedSearch || typeFilter || activeFilter);
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Sr. No</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Type</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">GSTIN</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">City / State</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Registered</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Active</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {parties.length === 0 ? (
-              <tr>
-                <td colSpan="8" className="py-4 text-center text-gray-500">
-                  No parties found.
-                </td>
-              </tr>
-            ) : (
-              parties.map((party, index) => (
-                <tr key={party.id}>
-                  <td className="px-4 py-2">{(page - 1) * limit + index + 1}</td>
-                  <td className="px-4 py-2 font-medium text-gray-900">{party.name}</td>
-                  <td className="px-4 py-2 capitalize">{party.party_type}</td>
-                  <td className="px-4 py-2">{party.gstin || <span className="text-gray-400">—</span>}</td>
-                  <td className="px-4 py-2">
-                    {[party.billing_city, party.billing_state].filter(Boolean).join(", ") || (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {Number(party.party_is_registered) ? (
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        Yes
-                      </span>
-                    ) : (
-                      <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        No
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {Number(party.is_active) ? (
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => navigate(`/parties/edit/${party.id}`)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(party)}
-                      />
-                    </div>
+  return (
+    <Card>
+      <PageHeader
+        title="Parties"
+        subtitle={`${totalItems} client${totalItems === 1 ? "" : "s"} and vendors`}
+      >
+        <select
+          value={typeFilter}
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by type"
+          className={selectClass}
+        >
+          <option value="">All types</option>
+          <option value="client">Client</option>
+          <option value="vendor">Vendor</option>
+        </select>
+        <select
+          value={activeFilter}
+          onChange={(e) => {
+            setActiveFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by status"
+          className={selectClass}
+        >
+          <option value="">All statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search parties..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/parties/add")} className="shrink-0">
+          Add Party
+        </Button>
+      </PageHeader>
+
+      <TableWrap>
+        <Table minWidth="980px">
+          <THead>
+            <Th className="w-16">#</Th>
+            <Th>Name</Th>
+            <Th className="w-24">Type</Th>
+            <Th>GSTIN</Th>
+            <Th>City / State</Th>
+            <Th className="w-28">Registered</Th>
+            <Th className="w-28">Active</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
+
+          {loading ? (
+            <TableSkeleton rows={6} cols={8} />
+          ) : (
+            <TBody>
+              {parties.length === 0 ? (
+                <tr>
+                  <td colSpan="8">
+                    <EmptyState
+                      icon={Building2}
+                      title={hasFilters ? "No matching parties" : "No parties yet"}
+                      message={
+                        hasFilters
+                          ? "Try a different search term or clear the filters."
+                          : "Add the clients and vendors you raise documents against."
+                      }
+                      action={
+                        !hasFilters && (
+                          <Button icon={Plus} onClick={() => navigate("/parties/add")}>
+                            Add Party
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                parties.map((party, index) => (
+                  <Tr key={party.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td className="font-medium text-gray-900">{party.name}</Td>
+                    <Td className="capitalize text-gray-500">{party.party_type}</Td>
+                    <Td className="whitespace-nowrap text-gray-500">
+                      {party.gstin || <span className="text-gray-300">—</span>}
+                    </Td>
+                    <Td className="text-gray-500">
+                      {[party.billing_city, party.billing_state].filter(Boolean).join(", ") || (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </Td>
+                    <Td>
+                      <StatusBadge
+                        status={Number(party.party_is_registered) ? "Yes" : "No"}
+                      />
+                    </Td>
+                    <Td>
+                      <StatusBadge status={Number(party.is_active) ? "active" : "inactive"} />
+                    </Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/parties/edit/${party.id}`)}
+                        onDelete={() => handleDeleteClick(party)}
+                        editLabel="Edit party"
+                        deleteLabel="Delete party"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
       <ConfirmDeleteModal
         isOpen={isModalOpen}
@@ -210,10 +230,11 @@ function PartiesList() {
         itemName={selected?.name}
         isChecked={isChecked}
         setIsChecked={setIsChecked}
+        loading={deleting}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-    </div>
+    </Card>
   );
 }
 

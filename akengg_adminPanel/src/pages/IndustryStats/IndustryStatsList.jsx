@@ -1,14 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Pencil, Trash2 } from "lucide-react";
+import { Plus, BarChart3 } from "lucide-react";
 import { fetchIndustryStats, deleteIndustryStat } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Button from "../../components/ui/Button";
+import RowActions from "../../components/ui/RowActions";
+import EmptyState from "../../components/ui/EmptyState";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 
 function IndustryStatsList() {
   const navigate = useNavigate();
   const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
@@ -16,6 +25,7 @@ function IndustryStatsList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const getStats = async () => {
     try {
@@ -23,6 +33,8 @@ function IndustryStatsList() {
       setStats(res?.data?.data || []);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch industry stats");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,6 +70,7 @@ function IndustryStatsList() {
       return;
     }
     if (!selected?.id) return;
+    setDeleting(true);
     try {
       const res = await deleteIndustryStat(selected.id);
       toast.success(res?.data?.message || "Industry stat deleted successfully");
@@ -66,88 +79,99 @@ function IndustryStatsList() {
       getStats();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to delete industry stat");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Industry Stats</h1>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-5">
-          <input
-            type="text"
-            placeholder="Search industries..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-          />
-          <button
-            onClick={() => navigate("/industry-stats/add")}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Add Industry
-          </button>
-        </div>
-      </div>
+    <Card>
+      <PageHeader
+        title="Industry Stats"
+        subtitle={`${stats.length} industr${stats.length === 1 ? "y" : "ies"} shown on the projects page`}
+      >
+        <SearchInput
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search industries..."
+        />
+        <Button icon={Plus} onClick={() => navigate("/industry-stats/add")} className="shrink-0">
+          Add Industry
+        </Button>
+      </PageHeader>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Sr. No</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Industry</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Count</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Color</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Order</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {paginated.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-4 text-center text-gray-500">
-                  No industry stats found.
-                </td>
-              </tr>
-            ) : (
-              paginated.map((stat, index) => (
-                <tr key={stat.id}>
-                  <td className="px-4 py-2">{(page - 1) * limit + index + 1}</td>
-                  <td className="px-4 py-2">{stat.name}</td>
-                  <td className="px-4 py-2">{stat.count}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      {stat.color ? (
-                        <span
-                          className="inline-block h-4 w-4 rounded-full border border-gray-300"
-                          style={{ backgroundColor: stat.color }}
-                        />
-                      ) : null}
-                      <span>{stat.color || "—"}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2">{stat.sort_order}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-5">
-                      <Pencil
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => navigate(`/industry-stats/edit/${stat.id}`)}
-                      />
-                      <Trash2
-                        className="cursor-pointer text-red-600 hover:text-red-800"
-                        onClick={() => handleDeleteClick(stat)}
-                      />
-                    </div>
+      <TableWrap>
+        <Table minWidth="680px">
+          <THead>
+            <Th className="w-16">#</Th>
+            <Th>Industry</Th>
+            <Th className="w-24">Count</Th>
+            <Th>Color</Th>
+            <Th className="w-20">Order</Th>
+            <Th className="w-24">Actions</Th>
+          </THead>
+
+          {loading ? (
+            <TableSkeleton rows={6} cols={6} />
+          ) : (
+            <TBody>
+              {paginated.length === 0 ? (
+                <tr>
+                  <td colSpan="6">
+                    <EmptyState
+                      icon={BarChart3}
+                      title={search ? "No matching industries" : "No industry stats yet"}
+                      message={
+                        search
+                          ? "Try a different search term."
+                          : "These drive the industry breakdown on the projects page."
+                      }
+                      action={
+                        !search && (
+                          <Button icon={Plus} onClick={() => navigate("/industry-stats/add")}>
+                            Add Industry
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                paginated.map((stat, index) => (
+                  <Tr key={stat.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td className="font-medium text-gray-900">{stat.name}</Td>
+                    <Td className="text-gray-500">{stat.count}</Td>
+                    <Td>
+                      <div className="flex items-center gap-2">
+                        {stat.color ? (
+                          <span
+                            className="inline-block h-4 w-4 rounded-full border border-gray-200"
+                            style={{ backgroundColor: stat.color }}
+                          />
+                        ) : null}
+                        <span className="text-gray-500">{stat.color || "—"}</span>
+                      </div>
+                    </Td>
+                    <Td className="text-gray-500">{stat.sort_order}</Td>
+                    <Td>
+                      <RowActions
+                        onEdit={() => navigate(`/industry-stats/edit/${stat.id}`)}
+                        onDelete={() => handleDeleteClick(stat)}
+                        editLabel="Edit industry stat"
+                        deleteLabel="Delete industry stat"
+                      />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
       <ConfirmDeleteModal
         isOpen={isModalOpen}
@@ -157,10 +181,11 @@ function IndustryStatsList() {
         itemName={selected?.name}
         isChecked={isChecked}
         setIsChecked={setIsChecked}
+        loading={deleting}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-    </div>
+    </Card>
   );
 }
 

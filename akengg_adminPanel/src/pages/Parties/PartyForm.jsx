@@ -1,10 +1,12 @@
-import { StepBack } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { addParty, getPartyById, updateParty } from "../../api/api";
 import { GST_STATES } from "../../config/docConfig";
 import { isValidGstin, gstinStateCode } from "../../utils/gstin";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import FormActions from "../../components/ui/FormActions";
 
 const EMPTY = {
   party_type: "client",
@@ -33,11 +35,12 @@ const EMPTY = {
   is_active: true,
 };
 
-const inputCls = "w-full rounded-md border border-gray-300 p-2";
+const inputCls =
+  "w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-sm transition placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100";
 
 const Field = ({ label, name, value, onChange, type = "text", placeholder }) => (
   <div>
-    <label className="mb-1 block text-base font-medium text-gray-700">{label}</label>
+    <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
     <input
       type={type}
       name={name}
@@ -51,7 +54,7 @@ const Field = ({ label, name, value, onChange, type = "text", placeholder }) => 
 
 const StateSelect = ({ label, codeName, nameName, codeValue, onPick }) => (
   <div>
-    <label className="mb-1 block text-base font-medium text-gray-700">{label}</label>
+    <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
     <select
       value={codeValue || ""}
       onChange={(e) => {
@@ -72,7 +75,7 @@ const StateSelect = ({ label, codeName, nameName, codeValue, onPick }) => (
 );
 
 const SectionTitle = ({ children }) => (
-  <h2 className="md:col-span-2 mt-2 border-b pb-1 text-lg font-semibold text-gray-800">
+  <h2 className="md:col-span-2 mt-3 flex items-center gap-2.5 border-b border-gray-100 pb-2 text-sm font-semibold text-gray-900">
     {children}
   </h2>
 );
@@ -83,6 +86,7 @@ const PartyForm = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(EMPTY);
   const [sameAsBilling, setSameAsBilling] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -146,6 +150,12 @@ const PartyForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    if (gstinTrimmed && !gstinValid) {
+      toast.error("Enter a valid GSTIN, or clear the field.");
+      return;
+    }
+    setSaving(true);
     const loadingToast = toast.loading(isEdit ? "Updating party..." : "Creating party...");
 
     const payload = {
@@ -168,28 +178,24 @@ const PartyForm = () => {
       toast.error(error?.response?.data?.message || "Failed to save party", {
         id: loadingToast,
       });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="mx-auto h-auto w-full rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
-        >
-          <StepBack />
-        </button>
-        <h1 className="text-2xl font-bold text-indigo-600">
-          {isEdit ? "Update Party" : "Add a Party"}
-        </h1>
-      </div>
+    <Card>
+      <PageHeader
+        title={isEdit ? "Update Party" : "Add a Party"}
+        subtitle="Clients and vendors you raise documents against."
+        onBack={() => navigate(-1)}
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <SectionTitle>Details</SectionTitle>
 
         <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">Party Type</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Party Type</label>
           <select
             name="party_type"
             value={formData.party_type}
@@ -210,7 +216,7 @@ const PartyForm = () => {
         />
 
         <div>
-          <label className="mb-1 block text-base font-medium text-gray-700">GSTIN</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">GSTIN</label>
           <input
             type="text"
             name="gstin"
@@ -304,17 +310,13 @@ const PartyForm = () => {
         <Field label="Pincode" name="shipping_pincode" value={formData.shipping_pincode} onChange={handleChange} />
         <Field label="Country" name="shipping_country" value={formData.shipping_country} onChange={handleChange} />
 
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            disabled={gstinTrimmed && !gstinValid}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-[200px]"
-          >
-            {isEdit ? "Update Party" : "Submit"}
-          </button>
-        </div>
+        <FormActions
+          saving={saving}
+          submitLabel={isEdit ? "Update Party" : "Create Party"}
+          onCancel={() => navigate("/parties")}
+        />
       </form>
-    </div>
+    </Card>
   );
 };
 

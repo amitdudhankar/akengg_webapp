@@ -24,24 +24,31 @@ import {
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
 import EmailDocumentModal from "../../components/documents/EmailDocumentModal";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import IconButton from "../../components/ui/IconButton";
+import EmptyState from "../../components/ui/EmptyState";
+import StatusBadge from "../../components/ui/StatusBadge";
+import TableSkeleton from "../../components/ui/TableSkeleton";
+import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 import { formatINR } from "../../utils/money";
 import { DOC_TYPES, TYPE_LABELS, TYPE_TO_SLUG } from "../../config/docConfig";
 import { useAuth } from "../../context/AuthContext";
 import { toDateInputValue } from "../../utils/date";
 
-const STATUS_BADGE = {
-  draft: "bg-yellow-100 text-yellow-700",
-  finalized: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-};
+const selectClass =
+  "w-full rounded-lg border border-gray-200 p-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:w-auto";
 
 function DocumentsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
   const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -84,6 +91,7 @@ function DocumentsList() {
   }, [search]);
 
   const getDocuments = async () => {
+    setLoading(true);
     try {
       const res = await fetchDocuments({
         type: typeFilter || undefined,
@@ -94,8 +102,11 @@ function DocumentsList() {
       });
       setDocuments(res?.data?.data || []);
       setTotalPages(res?.data?.pagination?.totalPages || 1);
+      setTotalItems(res?.data?.pagination?.totalItems ?? 0);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch documents");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -263,18 +274,58 @@ function DocumentsList() {
   };
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-md sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-indigo-600">Documents</h1>
+    <Card>
+      <PageHeader
+        title="Documents"
+        subtitle={`${totalItems} quotation${totalItems === 1 ? "" : "s"}, invoices and orders`}
+      >
+        <select
+          value={typeFilter}
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by type"
+          className={selectClass}
+        >
+          <option value="">All types</option>
+          {Object.entries(TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by status"
+          className={selectClass}
+        >
+          <option value="">All statuses</option>
+          <option value="draft">Draft</option>
+          <option value="finalized">Finalized</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <SearchInput
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search number / party..."
+        />
 
         {/* "New Document" dropdown — one entry per configured document type. */}
-        <div className="relative w-full sm:w-auto" ref={newMenuRef}>
+        <div className="relative w-full shrink-0 sm:w-auto" ref={newMenuRef}>
           <button
             type="button"
             onClick={() => setNewMenuOpen((open) => !open)}
             aria-haspopup="menu"
             aria-expanded={newMenuOpen}
-            className="flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             New Document
@@ -284,7 +335,7 @@ function DocumentsList() {
           {newMenuOpen ? (
             <div
               role="menu"
-              className="absolute right-0 z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg sm:w-56"
+              className="absolute right-0 z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg sm:w-56"
             >
               {DOC_TYPES.map((cfg) => (
                 <button
@@ -303,68 +354,41 @@ function DocumentsList() {
             </div>
           ) : null}
         </div>
-      </div>
+      </PageHeader>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <select
-          value={typeFilter}
-          onChange={(e) => {
-            setTypeFilter(e.target.value);
-            setPage(1);
-          }}
-          className="w-full rounded-md border border-gray-300 p-2 sm:w-auto"
-        >
-          <option value="">All types</option>
-          {Object.entries(TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-          className="w-full rounded-md border border-gray-300 p-2 sm:w-auto"
-        >
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="finalized">Finalized</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <input
-          type="text"
-          placeholder="Search number / party..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="w-full rounded-md border border-gray-300 p-2 sm:min-w-[240px]"
-        />
-      </div>
+      <TableWrap>
+        <Table minWidth="960px">
+          <THead>
+            <Th className="w-14">#</Th>
+            <Th>Number</Th>
+            <Th>Type</Th>
+            <Th>Party</Th>
+            <Th className="w-28">Date</Th>
+            <Th className="w-32 text-right">Grand Total</Th>
+            <Th className="w-28">Status</Th>
+            <Th className="w-56">Actions</Th>
+          </THead>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Sr</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Number</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Type</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Party</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
-              <th className="px-4 py-2 text-right font-medium text-gray-700">Grand Total</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
+          {loading ? (
+            <TableSkeleton rows={6} cols={8} />
+          ) : (
+          <TBody>
             {documents.length === 0 ? (
               <tr>
-                <td colSpan="8" className="py-4 text-center text-gray-500">
-                  No documents found.
+                <td colSpan="8">
+                  <EmptyState
+                    icon={FileText}
+                    title={
+                      debouncedSearch || typeFilter || statusFilter
+                        ? "No matching documents"
+                        : "No documents yet"
+                    }
+                    message={
+                      debouncedSearch || typeFilter || statusFilter
+                        ? "Try a different search term or clear the filters."
+                        : "Create a quotation, proforma, purchase order or tax invoice."
+                    }
+                  />
                 </td>
               </tr>
             ) : (
@@ -372,107 +396,97 @@ function DocumentsList() {
                 const isDraft = doc.status === "draft";
                 const rowBusy = actionBusyId === doc.id;
                 return (
-                  <tr key={doc.id}>
-                    <td className="px-4 py-2">{(page - 1) * limit + index + 1}</td>
-                    <td className="px-4 py-2 font-mono">
+                  <Tr key={doc.id}>
+                    <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
+                    <Td className="font-mono font-medium text-gray-900">
                       {doc.doc_number || <span className="italic text-gray-400">Draft</span>}
-                    </td>
-                    <td className="px-4 py-2">{TYPE_LABELS[doc.doc_type] || doc.doc_type}</td>
-                    <td className="px-4 py-2">
-                      {doc.party_name || <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="px-4 py-2">
-                      {doc.doc_date ? toDateInputValue(doc.doc_date) : <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="px-4 py-2 text-right">{formatINR(doc.grand_total)}</td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${
-                          STATUS_BADGE[doc.status] || "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {doc.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-4">
-                        <Pencil
-                          className="cursor-pointer text-blue-600 hover:text-blue-800"
-                          aria-label="Edit"
+                    </Td>
+                    <Td className="text-gray-500">
+                      {TYPE_LABELS[doc.doc_type] || doc.doc_type}
+                    </Td>
+                    <Td className="text-gray-500">
+                      {doc.party_name || <span className="text-gray-300">—</span>}
+                    </Td>
+                    <Td className="whitespace-nowrap text-gray-500">
+                      {doc.doc_date ? (
+                        toDateInputValue(doc.doc_date)
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap text-right font-medium text-gray-800">
+                      {formatINR(doc.grand_total)}
+                    </Td>
+                    <Td>
+                      <StatusBadge status={doc.status} />
+                    </Td>
+                    <Td>
+                      <div className="flex items-center gap-0.5">
+                        <IconButton
+                          icon={Pencil}
+                          label="Edit"
+                          tone="indigo"
                           onClick={() => handleEdit(doc)}
                         />
-                        <button
-                          type="button"
-                          aria-label="Download PDF"
-                          title="Download PDF"
+                        <IconButton
+                          icon={Download}
+                          label="Download PDF"
+                          tone="indigo"
                           disabled={downloadingId === doc.id}
                           onClick={() => handleDownload(doc)}
-                          className="disabled:opacity-50"
-                        >
-                          <Download className="cursor-pointer text-indigo-600 hover:text-indigo-800" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Download Word"
-                          title="Download Word"
+                        />
+                        <IconButton
+                          icon={FileText}
+                          label="Download Word"
+                          tone="indigo"
                           disabled={downloadingWordId === doc.id}
                           onClick={() => handleDownloadWord(doc)}
-                          className="disabled:opacity-50"
-                        >
-                          <FileText className="cursor-pointer text-blue-600 hover:text-blue-800" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Duplicate"
-                          title="Duplicate"
+                        />
+                        <IconButton
+                          icon={Copy}
+                          label="Duplicate"
                           disabled={rowBusy}
                           onClick={() => handleDuplicate(doc)}
-                          className="disabled:opacity-50"
-                        >
-                          <Copy className="cursor-pointer text-gray-600 hover:text-gray-800" />
-                        </button>
+                        />
                         {doc.status === "finalized" ? (
-                          <button
-                            type="button"
-                            aria-label="Email document"
-                            title="Email to party"
+                          <IconButton
+                            icon={Mail}
+                            label="Email to party"
+                            tone="emerald"
                             disabled={rowBusy}
                             onClick={() => setEmailTarget(doc)}
-                            className="disabled:opacity-50"
-                          >
-                            <Mail className="cursor-pointer text-emerald-600 hover:text-emerald-800" />
-                          </button>
+                          />
                         ) : null}
                         {doc.status === "finalized" && isAdmin ? (
-                          <button
-                            type="button"
-                            aria-label="Cancel document"
-                            title="Cancel document"
+                          <IconButton
+                            icon={Ban}
+                            label="Cancel document"
+                            tone="rose"
                             disabled={rowBusy}
                             onClick={() => handleCancelClick(doc)}
-                            className="disabled:opacity-50"
-                          >
-                            <Ban className="cursor-pointer text-red-600 hover:text-red-800" />
-                          </button>
-                        ) : null}
-                        {isDraft && isAdmin ? (
-                          <Trash2
-                            className="cursor-pointer text-red-600 hover:text-red-800"
-                            aria-label="Delete"
-                            onClick={() => handleDeleteClick(doc)}
                           />
-                        ) : (
-                          <Trash2 className="text-gray-300" aria-label="Delete disabled" />
-                        )}
+                        ) : null}
+                        <IconButton
+                          icon={Trash2}
+                          label={
+                            isDraft && isAdmin
+                              ? "Delete"
+                              : "Only draft documents can be deleted by an admin"
+                          }
+                          tone="rose"
+                          disabled={!(isDraft && isAdmin)}
+                          onClick={() => handleDeleteClick(doc)}
+                        />
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 );
               })
             )}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+          )}
+        </Table>
+      </TableWrap>
 
       <ConfirmDeleteModal
         isOpen={isModalOpen}
@@ -512,7 +526,7 @@ function DocumentsList() {
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-    </div>
+    </Card>
   );
 }
 
