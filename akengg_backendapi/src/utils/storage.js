@@ -45,6 +45,13 @@ const MAX_SOURCE_IMAGE_SIZE = 25 * 1024 * 1024; // 25MB
 // Local disk root that is served publicly at /uploads (see app.js).
 const UPLOAD_ROOT = path.join(__dirname, "..", "public", "uploads");
 
+// Local disk root for files that must NEVER be reachable via the public
+// /uploads static mount — e.g. lead attachments (customer drawings, BOQs,
+// spec PDFs). A sibling of "public", but no express.static() call is ever
+// pointed at it; files here are only readable through an authenticated
+// backend route that streams them via getPrivateStream().
+const PRIVATE_ROOT = path.join(__dirname, "..", "private");
+
 const trimSlashes = (value) => String(value || "").replace(/^\/+|\/+$/g, "");
 
 // ── S3 wiring ──────────────────────────────────────────────────────────────
@@ -380,9 +387,136 @@ const readBuffer = async (key) => {
   return fs.promises.readFile(filePath);
 };
 
+// ── Private storage ─────────────────────────────────────────────────────────
+// Same driver-agnostic key convention as the public helpers above, but rooted
+// at PRIVATE_ROOT (local) / never listed in S3_PUBLIC_FOLDERS (s3). There is
+// deliberately no "private assetUrl" / presigned-URL helper here — private
+// files must only ever be streamed through an authenticated Express route
+// (getPrivateStream() piped to res), never given a direct or presigned link.
+
+/**
+ * Resolve a PRIVATE storage key to an absolute local path, guarding against
+ * path traversal (e.g. a malicious key like "../../../etc/passwd"). Only
+ * used by the local driver, shared by getPrivateStream() and
+ * deletePrivateAsset().
+ *
+ * @param {string} key driver-agnostic storage key
+ * @returns {string} absolute path under PRIVATE_ROOT
+ */
+const resolvePrivatePath = (key) => {
+  const root = path.resolve(PRIVATE_ROOT);
+  const resolved = path.resolve(PRIVATE_ROOT, trimSlashes(key));
+
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) {
+    throw new Error("Invalid file path");
+  }
+
+  return resolved;
+};
+
+/**
+ * Persist an in-memory buffer under a logical PRIVATE folder and return the
+ * driver-agnostic storage KEY ("<folder>/<filename>"). Mirrors putBuffer()
+ * exactly, except the local driver writes under PRIVATE_ROOT — never served
+ * by express.static() — instead of UPLOAD_ROOT. Used for files that must
+ * never be publicly reachable, e.g. lead attachments (customer drawings,
+ * BOQs, spec PDFs).
+ *
+ * @param {string} folder       logical folder (e.g. "leads/attachments")
+ * @param {string} filename     file name incl. extension
+ * @param {Buffer} buffer       file contents
+ * @param {string} [contentType] MIME type
+ * @returns {Promise<string>}   the stored key, e.g. "leads/attachments/xyz.pdf"
+ */
+const putPrivateBuffer = async (folder, filename, buffer, contentType) => {
+  if (!Buffer.isBuffer(buffer)) {
+    throw new AppError("putPrivateBuffer requires a Buffer", 500);
+  }
+
+  const key = `${trimSlashes(folder)}/${filename}`;
+
+  if (STORAGE_DRIVER === "s3") {
+    // IMPORTANT: this key's folder prefix must NEVER be added to the
+    // S3_PUBLIC_FOLDERS env list, or these become publicly downloadable.
+    const { PutObjectCommand } = require("@aws-sdk/client-s3");
+    await getS3Client().send(
+      new PutObjectCommand({
+        Bucket: s3Bucket(),
+        Key: key,
+        Body: buffer,
+        ...(contentType && { ContentType: contentType }),
+      })
+    );
+    return key;
+  }
+
+  const destination = path.join(PRIVATE_ROOT, trimSlashes(folder));
+  await fs.promises.mkdir(destination, { recursive: true });
+  await fs.promises.writeFile(path.join(destination, filename), buffer);
+
+  return key;
+};
+
+/**
+ * Return a readable stream for the object behind a PRIVATE stored key. Only
+ * ever consumed by an authenticated backend route that pipes the stream to
+ * res — no assetUrl()/presigned-URL equivalent exists for private keys by
+ * design.
+ *
+ * @param {string} key driver-agnostic storage key
+ * @returns {Promise<import('stream').Readable>}
+ */
+const getPrivateStream = async (key) => {
+  if (!key) {
+    throw new AppError("getPrivateStream requires a storage key", 500);
+  }
+
+  if (STORAGE_DRIVER === "s3") {
+    const { GetObjectCommand } = require("@aws-sdk/client-s3");
+    try {
+      const result = await getS3Client().send(
+        new GetObjectCommand({ Bucket: s3Bucket(), Key: trimSlashes(key) })
+      );
+      return result.Body; // a Node Readable stream
+    } catch (error) {
+      throw asStorageError(error, key);
+    }
+  }
+
+  return fs.createReadStream(resolvePrivatePath(key));
+};
+
+/**
+ * Delete the object behind a PRIVATE stored key. No-op for absolute/legacy
+ * URLs (mirrors deleteAsset()). Deleting an already-gone local file is not an
+ * error.
+ */
+const deletePrivateAsset = async (key) => {
+  if (!key || /^https?:\/\//i.test(key)) {
+    return;
+  }
+
+  if (STORAGE_DRIVER === "s3") {
+    const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+    await getS3Client().send(
+      new DeleteObjectCommand({ Bucket: s3Bucket(), Key: trimSlashes(key) })
+    );
+    return;
+  }
+
+  try {
+    await fs.promises.unlink(resolvePrivatePath(key));
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+};
+
 module.exports = {
   STORAGE_DRIVER,
   UPLOAD_ROOT,
+  PRIVATE_ROOT,
   MAX_SOURCE_IMAGE_SIZE,
   createMemoryUploader,
   sanitizeFileName,
@@ -392,4 +526,7 @@ module.exports = {
   putBuffer,
   getStream,
   readBuffer,
+  putPrivateBuffer,
+  getPrivateStream,
+  deletePrivateAsset,
 };

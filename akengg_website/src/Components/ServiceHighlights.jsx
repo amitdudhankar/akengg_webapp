@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getServices } from "../api/api";
+import RequestQuoteCta from "./RequestQuoteCta";
+import { trackEvent } from "../utils/analytics";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -71,12 +73,16 @@ const ServiceHighlights = () => {
             control solutions tailored for modern industries.
           </p>
 
-          <Link
-            to="/contact"
+          <RequestQuoteCta
             className="inline-block bg-[#F4C542] text-black px-8 py-3 font-medium text-sm shadow-md hover:opacity-90 transition"
+            onClick={() =>
+              trackEvent("quote_request_started", {
+                context: "service_highlights",
+              })
+            }
           >
-            Get a Quote
-          </Link>
+            Request a Quote
+          </RequestQuoteCta>
         </div>
 
         {/* RIGHT IMAGES — driven by the Services admin, FALLBACK_SERVICES until

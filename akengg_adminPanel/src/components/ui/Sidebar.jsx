@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   X,
@@ -6,6 +7,7 @@ import {
   Newspaper,
   Wrench,
   FolderKanban,
+  Factory,
   BarChart3,
   MessageSquareQuote,
   UsersRound,
@@ -17,15 +19,73 @@ import {
   Package,
   Store,
   ShieldCheck,
+  Target,
+  CalendarClock,
+  LineChart,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { fetchLeadStats } from "../../api/api";
 
-// Navigation grouped by domain: website-facing content vs the GST document
-// builder vs system administration. Each group renders under a small label so
-// the two control surfaces are visually separated.
+// How often the "Follow-ups" badge count refreshes on its own, in addition to
+// on mount and whenever the tab regains visibility.
+const DUE_TODAY_POLL_MS = 5 * 60 * 1000;
+
+/**
+ * Nice-to-have sidebar badge: how many follow-ups are due today. Polls
+ * fetchLeadStats on mount, every 5 minutes, and whenever the tab regains
+ * visibility. Any failure just leaves the badge absent — this is not
+ * critical path, so no error toast and no crash.
+ * @returns {number|null} the count, or null when unknown/unavailable
+ */
+function useDueTodayCount() {
+  const [count, setCount] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refresh = () => {
+      fetchLeadStats()
+        .then((res) => {
+          if (cancelled) return;
+          const value = res?.data?.data?.followups_due_today;
+          setCount(typeof value === "number" ? value : null);
+        })
+        .catch(() => {
+          // Silent — a missing badge is fine, this must never surface an error.
+        });
+    };
+
+    refresh();
+    const intervalId = setInterval(refresh, DUE_TODAY_POLL_MS);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  return count;
+}
+
+// Navigation grouped by domain: sales pipeline vs website-facing content vs
+// the GST document builder vs system administration. Each group renders
+// under a small label so the control surfaces are visually separated.
 const navSections = [
   {
     items: [{ name: "Dashboard", path: "/", icon: LayoutDashboard }],
+  },
+  {
+    label: "Sales",
+    items: [
+      { name: "Leads", path: "/leads", icon: Target },
+      { name: "Follow-ups", path: "/followups", icon: CalendarClock, badgeKey: "dueToday" },
+      { name: "Reports", path: "/reports/leads", icon: LineChart },
+    ],
   },
   {
     label: "Website Control",
@@ -33,6 +93,7 @@ const navSections = [
       { name: "Blogs", path: "/blogs", icon: Newspaper },
       { name: "Services", path: "/services", icon: Wrench },
       { name: "Projects", path: "/projects", icon: FolderKanban },
+      { name: "Industries", path: "/industries", icon: Factory },
       { name: "Industry Stats", path: "/industry-stats", icon: BarChart3 },
       { name: "Testimonials", path: "/testimonials", icon: MessageSquareQuote },
       { name: "Team", path: "/team", icon: UsersRound },
@@ -60,6 +121,11 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const dueTodayCount = useDueTodayCount();
+
+  // Maps an item's declarative `badgeKey` to whatever live value backs it.
+  // Most items carry neither `badge` nor `badgeKey` and are unaffected.
+  const badgeValues = { dueToday: dueTodayCount };
 
   const handleLogout = () => {
     logout();
@@ -129,6 +195,13 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.path);
+                  // Optional badge: an item may carry a literal `badge` count,
+                  // or a `badgeKey` naming a live value resolved above (e.g.
+                  // Follow-ups' due-today count). Every other item carries
+                  // neither and renders exactly as before. Only a positive
+                  // number ever shows a pill — zero/null/undefined show nothing.
+                  const badgeValue = item.badgeKey ? badgeValues[item.badgeKey] : item.badge;
+                  const showBadge = typeof badgeValue === "number" && badgeValue > 0;
                   return (
                     <Link
                       key={item.name}
@@ -149,6 +222,15 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
                         }`}
                       />
                       <span className="truncate">{item.name}</span>
+                      {showBadge && (
+                        <span
+                          className={`ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
+                            active ? "bg-white/20 text-white" : "bg-rose-500 text-white"
+                          }`}
+                        >
+                          {badgeValue > 99 ? "99+" : badgeValue}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

@@ -3,6 +3,8 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ArrowUpRight } from "lucide-react";
 import { useSettings } from "../context/SettingsContext";
+import RequestQuoteCta from "./RequestQuoteCta";
+import { trackEvent } from "../utils/analytics";
 
 const Hero = () => {
   const containerRef = useRef(null);
@@ -59,16 +61,26 @@ const Hero = () => {
           </p>
 
           {/* Buttons */}
-          <div className="hero-animate flex flex-col sm:flex-row gap-4 justify-start items-start">
+          <div className="hero-animate flex flex-col sm:flex-row gap-4 justify-start items-stretch sm:items-center">
+            <RequestQuoteCta
+              className="w-full sm:w-[292px] h-[59px] flex-shrink-0 bg-[#F4C542] text-black rounded-none font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center"
+              onClick={() =>
+                trackEvent("quote_request_started", { context: "hero" })
+              }
+            >
+              Request a Quote
+            </RequestQuoteCta>
+
             <Link
               to="/contact"
-              className="w-full sm:w-[292px] h-[59px] flex-shrink-0 bg-[#F4C542] text-black rounded-none font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center"
+              className="w-full sm:w-auto h-[59px] px-8 flex-shrink-0 rounded-none border-2 border-white/70 text-[#F4F4F4] font-semibold text-lg flex items-center justify-center transition-all duration-300 hover:border-[#F4C542] hover:text-[#F4C542]"
             >
               Get in Touch
             </Link>
 
             <Link
               to="/services"
+              aria-label="Explore our services"
               className="hidden sm:flex w-[59px] h-[59px] flex-shrink-0 rounded-none bg-[#F4C542] items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-md"
             >
               <ArrowUpRight className=" w-7 h-7 text-black" />

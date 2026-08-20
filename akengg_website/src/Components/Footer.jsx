@@ -1,11 +1,13 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { useSettings } from "../context/SettingsContext";
 import { resetConsent } from "../utils/cookieConsent";
+import { trackEvent } from "../utils/analytics";
 
 const Footer = () => {
   const { settings } = useSettings();
+  const location = useLocation();
 
   const phone = settings?.company_phone || "+91 9822845408";
   const email = settings?.company_email || "akengineering73@gmail.com";
@@ -43,6 +45,12 @@ const Footer = () => {
                   <Phone className="w-4 h-4 text-[#F4C542]" />
                   <a
                     href={`tel:${phone.replace(/\s+/g, "")}`}
+                    onClick={() =>
+                      trackEvent("phone_click", {
+                        context: "footer",
+                        path: location.pathname,
+                      })
+                    }
                     className="hover:text-[#F4C542]"
                   >
                     {phone}
@@ -53,6 +61,12 @@ const Footer = () => {
                   <Mail className="w-4 h-4 text-[#F4C542]" />
                   <a
                     href={`mailto:${email}`}
+                    onClick={() =>
+                      trackEvent("email_click", {
+                        context: "footer",
+                        path: location.pathname,
+                      })
+                    }
                     className="hover:text-[#F4C542]"
                   >
                     {email}
@@ -102,6 +116,11 @@ const Footer = () => {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/industries" className="hover:text-[#F4C542]">
+                    Industries
+                  </Link>
+                </li>
+                <li>
                   <Link to="/projects" className="hover:text-[#F4C542]">
                     Projects
                   </Link>
@@ -114,6 +133,11 @@ const Footer = () => {
                 <li>
                   <Link to="/contact" className="hover:text-[#F4C542]">
                     Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/request-quote" className="hover:text-[#F4C542]">
+                    Request a Quote
                   </Link>
                 </li>
               </ul>

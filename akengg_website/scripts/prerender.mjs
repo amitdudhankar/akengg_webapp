@@ -21,6 +21,13 @@ const PORT = 4178;
 // fallback (and indexed after Google renders them); add specific IDs here if
 // you want them statically pre-rendered too.
 //
+// /industries/:slug and /projects/:slug are deliberately NOT prerendered, for
+// the same reason as /blogs/:slug: their content lives entirely in the API, and
+// this script runs against a build where the API may well be unreachable — a
+// captured page would freeze the "not found" state into dist/ and hand crawlers
+// a permanent empty shell. They stay SPA-rendered (and are listed in
+// sitemap.xml by scripts/generate-sitemap.mjs, which does read the live API).
+//
 // NOTE: "/" is rendered LAST. Writing it earlier would overwrite dist/index.html
 // (which doubles as the SPA fallback served for the other routes), leaking the
 // home page's <head> into every page.
@@ -28,7 +35,17 @@ const ROUTES = [
   "/about",
   "/services",
   "/projects",
+  "/industries",
   "/contact",
+  "/request-quote",
+  "/ibr-steam-boiler",
+  "/non-ibr-steam-boiler",
+  "/industrial-steam-boiler",
+  "/thermic-fluid-heater",
+  "/hot-water-generator",
+  "/industrial-piping",
+  "/industrial-fabrication",
+  "/pollution-control-equipment",
   "/blogs",
   "/faq",
   "/privacy-policy",

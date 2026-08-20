@@ -1,5 +1,4 @@
 import React from "react";
-import QuoteSection from "./QuoteSection";
 import CTASection from "./CTASection";
 import Seo from "../Components/Seo";
 import { useSettings } from "../context/SettingsContext";

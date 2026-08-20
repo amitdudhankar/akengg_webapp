@@ -85,6 +85,54 @@ const sendContactAutoReply = async (contact) => {
   });
 };
 
+// ── Leads ───────────────────────────────────────────────────────────────────
+
+/**
+ * Notify the team about a new lead. Reply-To is set to the lead's own
+ * address (when known) so hitting reply in the inbox answers them directly.
+ * Fire-and-forget.
+ *
+ * @param {Object} lead persisted leads row
+ * @param {Object} [meta]
+ * @param {number} [meta.filesCount]
+ */
+const sendLeadNotification = async (lead, meta) => {
+  const to = adminRecipients();
+  if (!to.length) {
+    return { sent: false, skipped: true, reason: "MAIL_ADMIN_TO is not set" };
+  }
+
+  const { subject, html, text } = templates.leadNotification(lead, meta);
+
+  return mailer.sendMailSafe({
+    to,
+    subject,
+    html,
+    text,
+    ...(lead.email && { replyTo: lead.email }),
+  });
+};
+
+/**
+ * Acknowledge the enquiry to the lead who submitted it. Fire-and-forget.
+ * @param {Object} lead persisted leads row
+ */
+const sendLeadAutoReply = async (lead) => {
+  if (!lead || !lead.email) {
+    return { sent: false, skipped: true, reason: "No lead email" };
+  }
+
+  const { subject, html, text } = templates.leadAutoReply(lead);
+
+  return mailer.sendMailSafe({
+    to: lead.email,
+    subject,
+    html,
+    text,
+    ...(process.env.MAIL_REPLY_TO && { replyTo: process.env.MAIL_REPLY_TO }),
+  });
+};
+
 // ── Newsletter ──────────────────────────────────────────────────────────────
 
 /**
@@ -270,6 +318,8 @@ const sendDocumentEmail = async (documentId, options = {}) => {
 module.exports = {
   sendContactNotification,
   sendContactAutoReply,
+  sendLeadNotification,
+  sendLeadAutoReply,
   sendNewsletterWelcome,
   sendPasswordResetOtp,
   sendPasswordChangedNotice,

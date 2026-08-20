@@ -4,7 +4,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.akengg.in/</loc>
-    <lastmod>2026-08-17T18:31:09.000Z</lastmod>
+    <lastmod>2026-08-19T15:22:25.000Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -16,19 +16,25 @@
   </url>
   <url>
     <loc>https://www.akengg.in/services</loc>
-    <lastmod>2026-08-17T18:31:09.000Z</lastmod>
+    <lastmod>2026-08-18T14:17:52.000Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.akengg.in/projects</loc>
-    <lastmod>2026-08-17T18:31:09.000Z</lastmod>
+    <lastmod>2026-08-18T14:17:52.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/industries</loc>
+    <lastmod>2026-08-18T14:17:52.000Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.akengg.in/blogs</loc>
-    <lastmod>2026-08-17T18:31:09.000Z</lastmod>
+    <lastmod>2026-08-18T05:58:55.000Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -40,13 +46,59 @@
   </url>
   <url>
     <loc>https://www.akengg.in/contact</loc>
-    <lastmod>2026-08-18T09:22:51.000Z</lastmod>
+    <lastmod>2026-08-19T15:22:25.000Z</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.akengg.in/request-quote</loc>
+    <lastmod>2026-08-17T18:31:09.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/ibr-steam-boiler</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/non-ibr-steam-boiler</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/industrial-steam-boiler</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/thermic-fluid-heater</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/hot-water-generator</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/industrial-piping</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/industrial-fabrication</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/pollution-control-equipment</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.akengg.in/privacy-policy</loc>
-    <lastmod>2026-08-18T09:22:51.000Z</lastmod>
+    <lastmod>2026-08-18T13:52:35.000Z</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -55,5 +107,11 @@
     <lastmod>2026-08-18T09:22:51.000Z</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.akengg.in/blogs/industrial-boiler-types-applications-benefits-and-selection-guide</loc>
+    <lastmod>2026-08-18T05:58:55.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>

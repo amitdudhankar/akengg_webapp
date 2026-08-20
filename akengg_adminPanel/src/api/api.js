@@ -36,6 +36,48 @@ export const fetchContacts = ({ status } = {}) =>
 export const fetchContactById = (id) => api.get(`/contacts/${id}`);
 export const updateContact = (id, payload) => api.put(`/contacts/${id}`, payload);
 export const deleteContact = (id) => api.delete(`/contacts/${id}`);
+export const convertContactToLead = (contactId, payload = {}) =>
+  api.post(`/contacts/${contactId}/convert-to-lead`, payload);
+
+// ---- Leads ----
+export const fetchLeads = (params = {}) => api.get("/leads", { params });
+export const fetchLeadStats = () => api.get("/leads/stats");
+export const exportLeadsCsv = (params = {}) =>
+  api.get("/leads/export.csv", { params, responseType: "blob" });
+export const getLeadById = (id) => api.get(`/leads/${id}`);
+export const updateLead = (id, payload) => api.patch(`/leads/${id}`, payload);
+export const updateLeadStatus = (id, payload) =>
+  api.patch(`/leads/${id}/status`, payload);
+export const fetchLeadNotes = (id) => api.get(`/leads/${id}/notes`);
+export const addLeadNote = (id, payload) =>
+  api.post(`/leads/${id}/notes`, payload);
+export const fetchLeadFollowups = (id) => api.get(`/leads/${id}/followups`);
+export const addLeadFollowup = (id, payload) =>
+  api.post(`/leads/${id}/followups`, payload);
+export const updateLeadFollowup = (leadId, followupId, payload) =>
+  api.patch(`/leads/${leadId}/followups/${followupId}`, payload);
+export const fetchLeadFiles = (id) => api.get(`/leads/${id}/files`);
+export const uploadLeadFiles = (id, formData) =>
+  api.post(`/leads/${id}/files`, formData, multipart);
+export const downloadLeadFile = (leadId, fileId) =>
+  api.get(`/leads/${leadId}/files/${fileId}`, { responseType: "blob" });
+export const deleteLeadFile = (leadId, fileId) =>
+  api.delete(`/leads/${leadId}/files/${fileId}`);
+export const deleteLead = (id) => api.delete(`/leads/${id}`);
+export const convertLeadToParty = (id, payload = {}) =>
+  api.post(`/leads/${id}/convert-to-party`, payload);
+
+// ---- Followups ----
+export const fetchFollowups = (params = {}) =>
+  api.get("/followups", { params });
+export const exportFollowupsCsv = (params = {}) =>
+  api.get("/followups/export.csv", { params, responseType: "blob" });
+
+// ---- Lead reports ----
+export const fetchLeadSourceReport = (params = {}) =>
+  api.get("/reports/lead-sources", { params });
+export const fetchLeadProductReport = (params = {}) =>
+  api.get("/reports/lead-products", { params });
 
 // Forgot Password APIs (3 steps).
 // verify-otp returns { data: { resetToken } }; that token MUST be passed to
@@ -78,12 +120,36 @@ export const updateService = (id, formData) =>
 export const deleteService = (id) => api.delete(`/services/${id}`);
 
 // Projects API
-export const fetchProjects = () => api.get("/projects");
+// `params` is optional and backwards compatible: { status: "all" } includes
+// unpublished case studies (admin only — the interceptor already attaches the
+// token), { industry: "<slug>" } filters to one industry page.
+export const fetchProjects = (params = {}) => api.get("/projects", { params });
 export const getProjectById = (id) => api.get(`/projects/${id}`);
 export const addProject = (formData) => api.post("/projects", formData, multipart);
 export const updateProject = (id, formData) =>
   api.put(`/projects/${id}`, formData, multipart);
 export const deleteProject = (id) => api.delete(`/projects/${id}`);
+
+// Project gallery images. A gallery image can only hang off a SAVED project,
+// which is why the project id is in the path — the editor hides the gallery
+// entirely until the case study has been created.
+export const uploadProjectImage = (projectId, formData) =>
+  api.post(`/projects/${projectId}/images`, formData, multipart);
+export const deleteProjectImage = (projectId, imageId) =>
+  api.delete(`/projects/${projectId}/images/${imageId}`);
+
+// Industries API (CMS-managed industry landing pages).
+// GET returns published rows only; pass { status: "all" } to include drafts.
+// Array-ish fields (overview/challenges/solutions/applications/
+// related_products) come back parsed as arrays but are SENT as newline
+// separated text — see pages/Industries/IndustryForm.jsx.
+export const fetchIndustries = (params = {}) => api.get("/industries", { params });
+export const getIndustryById = (idOrSlug) => api.get(`/industries/${idOrSlug}`);
+export const createIndustry = (formData) =>
+  api.post("/industries", formData, multipart);
+export const updateIndustry = (id, formData) =>
+  api.put(`/industries/${id}`, formData, multipart);
+export const deleteIndustry = (id) => api.delete(`/industries/${id}`);
 
 // Industry stats API
 export const fetchIndustryStats = () => api.get("/industry-stats");

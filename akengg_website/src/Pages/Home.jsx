@@ -9,6 +9,7 @@ import GetStartedSection from "../Components/ClientLogos";
 import Blogs from "./Blogs";
 import BoilerSolution from "../Components/BoilerSolutions";
 import EnergySection from "../Components/EnergySection";
+import IndustriesStrip from "../Components/IndustriesStrip";
 
 const Home = () => {
   return (
@@ -23,6 +24,7 @@ const Home = () => {
       <ServiceHighlights />
       <BoilerSolution/>
       <EnergySection/>
+      <IndustriesStrip />
       {/* <SuccessProjects/> */}
       {/* <LeadershipTeam/> */}
       <Blogs/>

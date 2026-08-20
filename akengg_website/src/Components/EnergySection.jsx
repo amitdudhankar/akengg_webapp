@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import RequestQuoteCta from "./RequestQuoteCta";
+import { trackEvent } from "../utils/analytics";
 
 const EnergySection = () => {
   return (
@@ -37,12 +38,16 @@ const EnergySection = () => {
             compliance, and improved energy efficiency.
           </p>
 
-          <Link
-            to="/contact"
+          <RequestQuoteCta
             className="inline-block bg-[#1c1f26] text-[#F4C542] px-8 py-3 text-sm font-medium hover:opacity-90 transition"
+            onClick={() =>
+              trackEvent("quote_request_started", {
+                context: "energy_section",
+              })
+            }
           >
-            Get a Quote
-          </Link>
+            Request a Quote
+          </RequestQuoteCta>
         </div>
       </div>
     </section>

@@ -39,10 +39,23 @@ const deleteContact = async (req, res) => {
   });
 };
 
+const convertToLead = async (req, res) => {
+  const lead = await require("../services/lead.service").createLeadFromContact(
+    Number(req.params.id),
+    req.body,
+    req.user.id
+  );
+  res.status(201).json({
+    message: "Enquiry converted to lead",
+    data: lead,
+  });
+};
+
 module.exports = {
   createContact,
   getContacts,
   getContactById,
   updateContact,
   deleteContact,
+  convertToLead,
 };

@@ -9,8 +9,10 @@
 // build also works.
 //
 // <lastmod> is emitted only where the date is genuinely known:
-//   /blogs/:slug -> that row's updated_at (falling back to created_at)
-//   /blogs       -> the newest blog date
+//   /blogs/:slug      -> that row's updated_at (falling back to created_at)
+//   /industries/:slug -> same, from the industries endpoint
+//   /projects/:slug   -> same, from the projects endpoint
+//   listing pages     -> the newest date among their own entries
 //   static pages -> git commit date of the page source + its direct local imports
 // A route with no reliable date gets no <lastmod> at all. Google ignores lastmod
 // once it decides a site's values are untrustworthy, so stamping every URL with
@@ -53,9 +55,19 @@ const STATIC_ROUTES = [
   { path: "/about", changefreq: "monthly", priority: "0.8", source: "src/Pages/AboutUs.jsx" },
   { path: "/services", changefreq: "monthly", priority: "0.9", source: "src/Pages/Services.jsx" },
   { path: "/projects", changefreq: "monthly", priority: "0.8", source: "src/Pages/Projects.jsx" },
+  { path: "/industries", changefreq: "monthly", priority: "0.8", source: "src/Pages/Industries.jsx" },
   { path: "/blogs", changefreq: "weekly", priority: "0.7", source: "src/Pages/BlogListing.jsx" },
   { path: "/faq", changefreq: "monthly", priority: "0.6", source: "src/Pages/Faq.jsx" },
   { path: "/contact", changefreq: "yearly", priority: "0.7", source: "src/Pages/Contact.jsx" },
+  { path: "/request-quote", changefreq: "monthly", priority: "0.9", source: "src/Pages/RequestQuote/RequestQuote.jsx" },
+  { path: "/ibr-steam-boiler", changefreq: "monthly", priority: "0.8", source: "src/content/services/ibr-steam-boiler.js" },
+  { path: "/non-ibr-steam-boiler", changefreq: "monthly", priority: "0.8", source: "src/content/services/non-ibr-steam-boiler.js" },
+  { path: "/industrial-steam-boiler", changefreq: "monthly", priority: "0.8", source: "src/content/services/industrial-steam-boiler.js" },
+  { path: "/thermic-fluid-heater", changefreq: "monthly", priority: "0.8", source: "src/content/services/thermic-fluid-heater.js" },
+  { path: "/hot-water-generator", changefreq: "monthly", priority: "0.8", source: "src/content/services/hot-water-generator.js" },
+  { path: "/industrial-piping", changefreq: "monthly", priority: "0.8", source: "src/content/services/industrial-piping.js" },
+  { path: "/industrial-fabrication", changefreq: "monthly", priority: "0.8", source: "src/content/services/industrial-fabrication.js" },
+  { path: "/pollution-control-equipment", changefreq: "monthly", priority: "0.8", source: "src/content/services/pollution-control-equipment.js" },
   { path: "/privacy-policy", changefreq: "yearly", priority: "0.3", source: "src/Pages/PrivacyPolicy.jsx" },
   { path: "/terms", changefreq: "yearly", priority: "0.3", source: "src/Pages/Terms.jsx" },
 ];
@@ -156,6 +168,34 @@ async function fetchAllBlogs() {
   return all;
 }
 
+// ── industries & projects ───────────────────────────────────────────────────
+// Both endpoints return the whole published, ordered collection in one shot
+// inside the standard { message, data } envelope - no paging to unwind.
+async function fetchCollection(path) {
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
+
+  const body = await res.json();
+  if (Array.isArray(body?.data)) return body.data;
+  return Array.isArray(body) ? body : [];
+}
+
+// Only slug URLs are emitted: a row the owner has not slugged yet has no
+// canonical detail URL to point a crawler at.
+const detailEntries = (rows, prefix, priority) =>
+  rows
+    .filter((row) => row && row.slug)
+    .map((row) => ({
+      loc: `${SITE_URL}${prefix}/${encodeURIComponent(row.slug)}`,
+      lastmod: toIso(row.updated_at) || toIso(row.created_at),
+      changefreq: "monthly",
+      priority,
+    }));
+
 // ── xml ─────────────────────────────────────────────────────────────────────
 const xmlEscape = (value) =>
   String(value)
@@ -182,6 +222,24 @@ try {
   blogError = error;
 }
 
+// Same tolerance as the blogs above: an unreachable API costs those URLs, it
+// never fails the build (unless --strict was asked for).
+let industries = [];
+let industryError = null;
+try {
+  industries = await fetchCollection("/industries");
+} catch (error) {
+  industryError = error;
+}
+
+let projects = [];
+let projectError = null;
+try {
+  projects = await fetchCollection("/projects");
+} catch (error) {
+  projectError = error;
+}
+
 const blogEntries = blogs
   .filter((blog) => blog && blog.id !== undefined && blog.id !== null)
   .map((blog) => ({
@@ -191,20 +249,27 @@ const blogEntries = blogs
     priority: "0.6",
   }));
 
-const newestBlogDate = newestIso(blogEntries.map((entry) => entry.lastmod));
+const industryEntries = detailEntries(industries, "/industries", "0.7");
+const projectEntries = detailEntries(projects, "/projects", "0.6");
+
+// A listing page changes whenever one of the things it lists does.
+const LISTING_DATES = {
+  "/blogs": newestIso(blogEntries.map((entry) => entry.lastmod)),
+  "/industries": newestIso(industryEntries.map((entry) => entry.lastmod)),
+  "/projects": newestIso(projectEntries.map((entry) => entry.lastmod)),
+};
 
 const staticEntries = STATIC_ROUTES.map((route) => {
   const gitDate = newestIso(sourceFilesFor(route.source).map(gitLastCommitDate));
   return {
     loc: `${SITE_URL}${route.path}`,
-    // The listing page changes whenever a post does.
-    lastmod: route.path === "/blogs" ? newestBlogDate || gitDate : gitDate,
+    lastmod: LISTING_DATES[route.path] || gitDate,
     changefreq: route.changefreq,
     priority: route.priority,
   };
 });
 
-const entries = [...staticEntries, ...blogEntries];
+const entries = [...staticEntries, ...blogEntries, ...industryEntries, ...projectEntries];
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Generated by scripts/generate-sitemap.mjs - do not edit by hand.
      Regenerate with \`npm run sitemap\` (also runs as part of \`npm run build:seo\`). -->
@@ -213,11 +278,19 @@ ${entries.map(urlEntry).join("\n")}
 </urlset>
 `;
 
+const fetchErrors = [
+  ["blog", blogError],
+  ["industry", industryError],
+  ["project", projectError],
+].filter(([, error]) => error);
+
 // Under --strict, bail before writing so a degraded sitemap never lands on disk.
-if (blogError && strict) {
-  console.error(
-    `::error::blog URLs missing from sitemap - ${API_BASE} unreachable: ${blogError.message}`
-  );
+if (fetchErrors.length && strict) {
+  for (const [label, error] of fetchErrors) {
+    console.error(
+      `::error::${label} URLs missing from sitemap - ${API_BASE} unreachable: ${error.message}`
+    );
+  }
   process.exit(1);
 }
 
@@ -233,13 +306,14 @@ for (const target of targets) {
 }
 
 console.log(
-  `  ${entries.length} URLs (${staticEntries.length} static, ${blogEntries.length} blog) @ ${SITE_URL}`
+  `  ${entries.length} URLs (${staticEntries.length} static, ${blogEntries.length} blog, ` +
+    `${industryEntries.length} industry, ${projectEntries.length} project) @ ${SITE_URL}`
 );
 if (!gitUsable) {
   console.warn("  ! no usable git history - static pages have no <lastmod>.");
 }
-if (blogError) {
+for (const [label, error] of fetchErrors) {
   console.warn(
-    `  ! blog URLs missing from sitemap - ${API_BASE} unreachable: ${blogError.message}`
+    `  ! ${label} URLs missing from sitemap - ${API_BASE} unreachable: ${error.message}`
   );
 }

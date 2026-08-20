@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
 import { getServices } from "../api/api";
 import Seo from "../Components/Seo";
+import RequestQuoteCta from "../Components/RequestQuoteCta";
+import { trackEvent } from "../utils/analytics";
+import { SERVICE_PAGES } from "../content/services";
+
+// Heuristic match from a service card's title to the closest new detail
+// page -- covers both the hardcoded FALLBACK_SERVICES titles below and any
+// equivalent titles the Services admin API returns. Water Treatment has no
+// dedicated detail page in this batch, so it intentionally falls through to
+// null (no "Learn more" link).
+const learnMoreSlugFor = (title = "") => {
+  const t = title.toLowerCase();
+  if (t.includes("boiler")) return "industrial-steam-boiler";
+  if (t.includes("piping")) return "industrial-piping";
+  if (t.includes("fabrication")) return "industrial-fabrication";
+  if (t.includes("pollution")) return "pollution-control-equipment";
+  return null;
+};
 
 const FALLBACK_SERVICES = [
     {
@@ -128,6 +147,28 @@ const Services = () => {
         </div>
       </section>
 
+      {/* Explore our services -- quick links to the detailed product pages */}
+      <section className="py-10 bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="w-12 h-[3px] bg-[#F4C542] mb-4 mx-auto" />
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-6 text-center">
+            Explore our services
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {SERVICE_PAGES.map((page) => (
+              <Link
+                key={page.slug}
+                to={`/${page.slug}`}
+                className="group flex items-center justify-between gap-3 bg-white border border-gray-200 text-[13px] font-medium text-[#1c1f26] px-4 py-3 transition hover:border-[#F4C542] hover:bg-[#F4C542]/10"
+              >
+                <span>{page.hero.heading}</span>
+                <ArrowUpRight className="w-4 h-4 flex-shrink-0 text-gray-300 transition group-hover:text-[#F4C542]" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Services Grid */}
       <section className="py-20 bg-[#f5f5f5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -169,6 +210,16 @@ const Services = () => {
                       </div>
                     ))}
                   </div>
+
+                  {/* Learn More -- only for services with a dedicated detail page */}
+                  {learnMoreSlugFor(service.title) && (
+                    <Link
+                      to={`/${learnMoreSlugFor(service.title)}`}
+                      className="inline-flex items-center gap-1 mt-6 text-[14px] font-medium text-[#1c1f26] hover:text-[#F4C542] transition"
+                    >
+                      Learn more <span aria-hidden="true">&rarr;</span>
+                    </Link>
+                  )}
                 </div>
 
                 {/* IMAGE SIDE */}
@@ -214,12 +265,16 @@ const Services = () => {
           </p>
 
           {/* CTA Button */}
-          <a
-            href="/contact"
+          <RequestQuoteCta
             className="inline-block bg-[#F4C542] text-[#1c1f26] px-10 py-4 text-sm font-semibold tracking-wide hover:bg-[#e0b837] transition"
+            onClick={() =>
+              trackEvent("quote_request_started", {
+                context: "services_page",
+              })
+            }
           >
-            GET A QUOTE
-          </a>
+            REQUEST A QUOTE
+          </RequestQuoteCta>
         </div>
       </section>
     </div>

@@ -3,6 +3,7 @@ const query = require("../utils/db");
 // Editable site-settings fields (single row, id = 1).
 const ALLOWED_FIELDS = [
   "company_phone",
+  "whatsapp_number",
   "company_email",
   "company_address",
   "business_hours",

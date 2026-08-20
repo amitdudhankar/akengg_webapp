@@ -8,6 +8,7 @@ import FormActions from "../../components/ui/FormActions";
 
 const FIELDS = [
   "company_phone",
+  "whatsapp_number",
   "company_email",
   "company_address",
   "business_hours",
@@ -108,6 +109,14 @@ const SettingsPage = () => {
           value={formData.company_phone}
           onChange={handleChange}
           placeholder="+91 ..."
+        />
+        <Field
+          label="WhatsApp Number"
+          name="whatsapp_number"
+          value={formData.whatsapp_number}
+          onChange={handleChange}
+          placeholder="+91 ..."
+          hint="Used for the site's WhatsApp click-to-chat buttons. Falls back to the phone number above if left blank."
         />
         <Field
           label="Email"

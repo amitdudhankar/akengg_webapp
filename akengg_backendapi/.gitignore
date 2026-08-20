@@ -61,3 +61,6 @@ temp/
 # PM2 logs
 pm2.log
 pm2.pid
+
+# Private (non-public) local file storage — see src/utils/storage.js
+src/private/

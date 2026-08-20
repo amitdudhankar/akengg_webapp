@@ -13,7 +13,12 @@
 html, body {
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  /* `clip` — not `hidden` — on purpose. `overflow-x: hidden` turns the root
+     into a scroll container, which silently breaks `position: sticky` for
+     every descendant (the sticky header would just scroll away). `clip`
+     suppresses the same horizontal overflow without creating that scroll
+     container, so the sticky header works. */
+  overflow-x: clip;
   font-family: 'Inter', sans-serif;
   background-color: #f9fafb;
   color: #333;

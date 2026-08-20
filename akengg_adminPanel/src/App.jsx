@@ -20,6 +20,8 @@ import ServicesList from "./pages/Services/ServicesList";
 import ServiceForm from "./pages/Services/ServiceForm";
 import ProjectsList from "./pages/Projects/ProjectsList";
 import ProjectForm from "./pages/Projects/ProjectForm";
+import IndustriesList from "./pages/Industries/IndustriesList";
+import IndustryForm from "./pages/Industries/IndustryForm";
 import IndustryStatsList from "./pages/IndustryStats/IndustryStatsList";
 import IndustryStatForm from "./pages/IndustryStats/IndustryStatForm";
 import TestimonialsList from "./pages/Testimonials/TestimonialsList";
@@ -35,6 +37,10 @@ import CatalogList from "./pages/Catalog/CatalogList";
 import CatalogForm from "./pages/Catalog/CatalogForm";
 import DocumentsList from "./pages/Documents/DocumentsList";
 import DocumentBuilder from "./pages/Documents/DocumentBuilder";
+import LeadsList from "./pages/Leads/LeadsList";
+import LeadDetail from "./pages/Leads/LeadDetail";
+import FollowupsPage from "./pages/Followups/FollowupsPage";
+import LeadReports from "./pages/Reports/LeadReports";
 
 function App() {
   const { isLoggedIn } = useAuth();
@@ -209,6 +215,30 @@ function App() {
                   }
                 />
                 <Route
+                  path="/industries"
+                  element={
+                    <PrivateRoute>
+                      <IndustriesList />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/industries/add"
+                  element={
+                    <PrivateRoute>
+                      <IndustryForm />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/industries/edit/:id"
+                  element={
+                    <PrivateRoute>
+                      <IndustryForm />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
                   path="/industry-stats"
                   element={
                     <PrivateRoute>
@@ -373,6 +403,38 @@ function App() {
                   element={
                     <PrivateRoute>
                       <DocumentBuilder />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/leads"
+                  element={
+                    <PrivateRoute>
+                      <LeadsList />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/leads/:id"
+                  element={
+                    <PrivateRoute>
+                      <LeadDetail />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/followups"
+                  element={
+                    <PrivateRoute>
+                      <FollowupsPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/reports/leads"
+                  element={
+                    <PrivateRoute>
+                      <LeadReports />
                     </PrivateRoute>
                   }
                 />

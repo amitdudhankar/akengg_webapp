@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -14,6 +14,7 @@ import {
   convertDocument,
   cancelDocument,
   emailDocument,
+  getPartyById,
 } from "../../api/api";
 import {
   getDocConfig,
@@ -104,6 +105,8 @@ const partyFromSnapshot = (doc) => {
 export default function DocumentBuilder() {
   const { type, id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const config = getDocConfig(type);
   const isEdit = Boolean(id);
 
@@ -128,6 +131,7 @@ export default function DocumentBuilder() {
   const [cancelChecked, setCancelChecked] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const seededFromNavRef = useRef(false);
 
   const finalized = status === "finalized";
   const cancelled = status === "cancelled";
@@ -249,6 +253,42 @@ export default function DocumentBuilder() {
       return next;
     });
   };
+
+  // Pre-seed a brand-new document with a party + reference number handed off
+  // from elsewhere (e.g. "Create Quotation" from a Lead). Prefers react-router
+  // navigation state; falls back to URL query params (?party_id=&ref=) so a
+  // page refresh/direct link still works since navigation state doesn't
+  // survive that. Runs once on mount, only in create mode.
+  useEffect(() => {
+    if (isEdit || !config || seededFromNavRef.current) return;
+    seededFromNavRef.current = true;
+
+    const seedPartyId = location.state?.partyId || searchParams.get("party_id");
+    const seedReference = location.state?.reference || searchParams.get("ref");
+
+    if (seedReference) {
+      patchMeta({ reference_no: seedReference });
+    }
+
+    if (!seedPartyId) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await getPartyById(seedPartyId);
+        const party = res?.data?.data;
+        if (active && party) handlePartyChange(party);
+      } catch (error) {
+        if (active)
+          toast.error(
+            error?.response?.data?.message || "Failed to load pre-selected party"
+          );
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, config]);
 
   // Build the payload the backend expects. Lines are sent raw; the server
   // recomputes the GST via gst.engine.

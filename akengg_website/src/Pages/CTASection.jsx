@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import RequestQuoteCta from "../Components/RequestQuoteCta";
+import { trackEvent } from "../utils/analytics";
 
 const CTASection = () => {
   return (
@@ -33,12 +34,14 @@ const CTASection = () => {
 
     {/* ✅ CENTER BUTTON BELOW */}
     <div className="flex justify-center mt-10">
-      <Link
-        to="/contact"
+      <RequestQuoteCta
         className="bg-black text-white px-10 py-4 text-sm font-medium shadow-lg hover:bg-[#1c1f26] transition"
+        onClick={() =>
+          trackEvent("quote_request_started", { context: "cta_section" })
+        }
       >
-        Get A Quote
-      </Link>
+        Request a Quote
+      </RequestQuoteCta>
     </div>
 
   </div>

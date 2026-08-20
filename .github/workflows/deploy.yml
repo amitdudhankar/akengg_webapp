@@ -27,12 +27,17 @@ jobs:
       # A mismatched name does not error — it silently falls back to the
       # localhost default baked into src/api/api.js, which points every
       # visitor's browser at their own machine.
+      #
+      # VITE_GA4_ID is safe to leave unset for now — the analytics module is a
+      # no-op without it. Add the underlying VITE_GA4_ID repository secret once
+      # GA4 is actually configured.
       - name: Build website
         run: |
           cd akengg_website
           cat > .env <<'EOF'
           VITE_API_BASE_URL=https://api.akengg.in/api/v1
           VITE_SITE_URL=https://www.akengg.in
+          VITE_GA4_ID=${{ secrets.VITE_GA4_ID }}
           EOF
           npm install
           # build:seo = generate-sitemap + vite build + prerender.
@@ -61,6 +66,20 @@ jobs:
           # host is sitemaps.org (plural); a typo there voids the whole file.
           if ! grep -q 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' dist/sitemap.xml; then
             echo "::error::dist/sitemap.xml is missing the correct sitemaps.org namespace."
+            exit 1
+          fi
+          # Fail rather than ship GA4 baked into the static HTML. The tag is only
+          # supposed to be injected client-side after a visitor grants cookie
+          # consent — finding it in the prerendered snapshot means that gating
+          # regressed and analytics would fire for every visitor unconditionally.
+          if grep -q "googletagmanager" dist/index.html; then
+            echo "::error::dist/index.html contains 'googletagmanager' — the GA4 script must only load client-side after consent, not be baked into the prerendered HTML."
+            exit 1
+          fi
+          # Fail rather than ship without the ibr-steam-boiler service page
+          # prerendered (e.g. its route was dropped from prerender.mjs).
+          if [ ! -f dist/ibr-steam-boiler/index.html ]; then
+            echo "::error::dist/ibr-steam-boiler/index.html is missing — check the ROUTES list in scripts/prerender.mjs."
             exit 1
           fi
           echo "Sitemap URLs: $(grep -c '<loc>' dist/sitemap.xml)"

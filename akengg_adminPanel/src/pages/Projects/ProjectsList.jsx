@@ -11,8 +11,19 @@ import SearchInput from "../../components/ui/SearchInput";
 import Button from "../../components/ui/Button";
 import RowActions from "../../components/ui/RowActions";
 import EmptyState from "../../components/ui/EmptyState";
+import StatusBadge from "../../components/ui/StatusBadge";
 import TableSkeleton from "../../components/ui/TableSkeleton";
 import { TableWrap, Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
+
+// `industry` is the legacy free-text label, but the API also describes a nested
+// { id, slug, name } object once a project is linked to an industry page — so
+// read either shape rather than printing "[object Object]".
+const industryLabel = (project) => {
+  const value = project?.industry;
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") return value.name || "";
+  return "";
+};
 
 function ProjectsList() {
   const navigate = useNavigate();
@@ -29,7 +40,9 @@ function ProjectsList() {
 
   const getProjects = async () => {
     try {
-      const res = await fetchProjects();
+      // status=all so drafts stay visible in the admin — the public site only
+      // ever sees published case studies.
+      const res = await fetchProjects({ status: "all" });
       setProjects(res?.data?.data || []);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch projects");
@@ -46,9 +59,9 @@ function ProjectsList() {
     const query = search.trim().toLowerCase();
     if (!query) return projects;
     return projects.filter((project) =>
-      [project.title, project.industry, project.description]
+      [project.title, industryLabel(project), project.description]
         .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(query))
+        .some((value) => String(value).toLowerCase().includes(query))
     );
   }, [projects, search]);
 
@@ -106,23 +119,24 @@ function ProjectsList() {
       </PageHeader>
 
       <TableWrap>
-        <Table minWidth="880px">
+        <Table minWidth="1000px">
           <THead>
             <Th className="w-16">#</Th>
             <Th>Title</Th>
             <Th>Industry</Th>
             <Th className="w-24">Image</Th>
+            <Th className="w-28">Published</Th>
             <Th className="w-20">Order</Th>
             <Th className="w-24">Actions</Th>
           </THead>
 
           {loading ? (
-            <TableSkeleton rows={6} cols={6} />
+            <TableSkeleton rows={6} cols={7} />
           ) : (
             <TBody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="6">
+                  <td colSpan="7">
                     <EmptyState
                       icon={FolderKanban}
                       title={search ? "No matching projects" : "No projects yet"}
@@ -146,7 +160,9 @@ function ProjectsList() {
                   <Tr key={project.id}>
                     <Td className="text-gray-400">{(page - 1) * limit + index + 1}</Td>
                     <Td className="font-medium text-gray-900">{project.title}</Td>
-                    <Td className="text-gray-500">{project.industry}</Td>
+                    <Td className="text-gray-500">
+                      {industryLabel(project) || <span className="text-gray-300">—</span>}
+                    </Td>
                     <Td>
                       {project.image ? (
                         <img
@@ -157,6 +173,11 @@ function ProjectsList() {
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
+                    </Td>
+                    <Td>
+                      <StatusBadge
+                        status={Number(project.is_published ?? 1) ? "active" : "inactive"}
+                      />
                     </Td>
                     <Td className="text-gray-500">{project.sort_order}</Td>
                     <Td>

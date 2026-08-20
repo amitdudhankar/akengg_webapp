@@ -126,6 +126,10 @@ const detailTable = (rowsHtml) =>
 const paragraph = (html) =>
   `<p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:${BRAND.ink};">${html}</p>`;
 
+/** CTA button — same visual style already used for the newsletter's "Visit our website" link. */
+const ctaButton = (url, label) =>
+  `<p style="margin:24px 0 0;"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;background-color:${BRAND.accent};color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">${esc(label)}</a></p>`;
+
 // ── Templates ──────────────────────────────────────────────────────────────
 
 /**
@@ -410,6 +414,155 @@ const passwordChanged = ({ name } = {}) => {
   };
 };
 
+// ── Leads ────────────────────────────────────────────────────────────────
+
+/** "site_visit" -> "Site visit" for a technical_details key. */
+const prettifyKey = (key) => {
+  const spaced = String(key).replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+
+/**
+ * Internal alert for a new lead captured through the website enquiry form.
+ * @param {Object} lead persisted leads row
+ * @param {Object} [meta]
+ * @param {number} [meta.filesCount] number of files uploaded with the lead
+ */
+const leadNotification = (lead, meta = {}) => {
+  const filesCount = Number(meta.filesCount) || 0;
+
+  const location =
+    [lead.city, lead.state, lead.plant_location].filter(Boolean).join(", ") ||
+    "—";
+
+  const technicalEntries =
+    lead.technical_details &&
+    typeof lead.technical_details === "object" &&
+    !Array.isArray(lead.technical_details) &&
+    Object.keys(lead.technical_details).length
+      ? Object.entries(lead.technical_details)
+      : [];
+
+  const bodyHtml =
+    paragraph("A new lead was submitted through the website.") +
+    detailTable(
+      [
+        row("Lead ID", esc(lead.lead_number)),
+        row("Customer", esc(lead.contact_person)),
+        row("Company", esc(lead.company_name || "—")),
+        row(
+          "Phone",
+          lead.phone
+            ? `<a href="tel:${esc(lead.phone)}" style="color:${BRAND.accent};text-decoration:none;">${esc(lead.phone)}</a>`
+            : ""
+        ),
+        row(
+          "Email",
+          lead.email
+            ? `<a href="mailto:${esc(lead.email)}" style="color:${BRAND.accent};text-decoration:none;">${esc(lead.email)}</a>`
+            : esc("—")
+        ),
+        row("Industry", esc(lead.industry || "—")),
+        row("Product", esc(lead.product || "—")),
+        row("Location", esc(location)),
+        row("Source", esc(lead.source || "—")),
+      ].join("") +
+        technicalEntries
+          .map(([key, value]) => row(prettifyKey(key), esc(value)))
+          .join("")
+    ) +
+    `<div style="margin:0 0 8px;font-size:13px;font-weight:600;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;">Requirement</div>` +
+    `<div style="padding:14px 16px;background-color:${BRAND.surface};border-left:3px solid ${BRAND.accent};border-radius:4px;font-size:15px;line-height:1.65;color:${BRAND.ink};margin:0 0 20px;">${escMultiline(lead.requirement)}</div>` +
+    (filesCount > 0
+      ? paragraph(
+          `<strong>Attachments:</strong> ${filesCount} file(s) attached — view in the admin panel.`
+        )
+      : "") +
+    ctaButton(
+      `${process.env.ADMIN_BASE_URL || "http://localhost:5174"}/leads/${lead.id}`,
+      "View Lead in Admin Panel"
+    );
+
+  const text = [
+    `Lead ID:   ${lead.lead_number}`,
+    `Customer:  ${lead.contact_person || "-"}`,
+    `Company:   ${lead.company_name || "-"}`,
+    `Phone:     ${lead.phone || "-"}`,
+    `Email:     ${lead.email || "-"}`,
+    `Industry:  ${lead.industry || "-"}`,
+    `Product:   ${lead.product || "-"}`,
+    `Location:  ${location}`,
+    `Source:    ${lead.source || "-"}`,
+    ...(technicalEntries.length
+      ? [
+          "",
+          "Technical details:",
+          ...technicalEntries.map(
+            ([key, value]) => `  ${prettifyKey(key)}: ${value ?? "-"}`
+          ),
+        ]
+      : []),
+    "",
+    "Requirement:",
+    lead.requirement || "-",
+    ...(filesCount > 0
+      ? ["", `Attachments: ${filesCount} file(s) attached — view in the admin panel.`]
+      : []),
+    "",
+    `View lead: ${process.env.ADMIN_BASE_URL || "http://localhost:5174"}/leads/${lead.id}`,
+  ].join("\n");
+
+  return {
+    subject: `New A K Engineering Lead — ${lead.lead_number}`,
+    html: layout({
+      heading: "New lead submitted",
+      preheader: `${lead.contact_person || "A visitor"} submitted a new lead — ${lead.lead_number}`,
+      bodyHtml,
+    }),
+    text,
+  };
+};
+
+/**
+ * Acknowledgement sent back to whoever submitted the lead enquiry form.
+ * @param {Object} lead persisted leads row
+ */
+const leadAutoReply = (lead) => {
+  const bodyHtml =
+    paragraph(
+      `Thank you for reaching out to ${esc(companyName())}. Your technical requirement has been received and our team will review it and contact you shortly.`
+    ) +
+    `<div style="margin:0 0 20px;padding:18px;background-color:${BRAND.surface};border:1px solid ${BRAND.border};border-radius:8px;text-align:center;">
+       <div style="font-size:12px;font-weight:600;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Lead reference number</div>
+       <div style="font-size:24px;font-weight:700;letter-spacing:1px;color:${BRAND.ink};">${esc(lead.lead_number)}</div>
+     </div>` +
+    (lead.product
+      ? paragraph(`<strong>Product:</strong> ${esc(lead.product)}`)
+      : "") +
+    paragraph(
+      "This is an automated confirmation — there is no need to reply to it."
+    );
+
+  const text = [
+    `Thank you for reaching out to ${companyName()}. Your technical requirement has been received and our team will review it and contact you shortly.`,
+    "",
+    `Lead reference number: ${lead.lead_number}`,
+    ...(lead.product ? [`Product: ${lead.product}`] : []),
+    "",
+    "This is an automated confirmation — there is no need to reply to it.",
+  ].join("\n");
+
+  return {
+    subject: `We've received your enquiry — ${lead.lead_number}`,
+    html: layout({
+      heading: "Thanks for getting in touch",
+      preheader: `Your reference number is ${lead.lead_number}.`,
+      bodyHtml,
+    }),
+    text,
+  };
+};
+
 module.exports = {
   contactNotification,
   contactAutoReply,
@@ -417,6 +570,8 @@ module.exports = {
   documentEmail,
   passwordResetOtp,
   passwordChanged,
+  leadNotification,
+  leadAutoReply,
   // exported for tests
   esc,
   formatMoney,

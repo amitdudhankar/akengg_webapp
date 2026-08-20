@@ -39,6 +39,14 @@ router.get(
   validateContactId,
   asyncHandler(contactController.getContactById)
 );
+router.post(
+  "/:id/convert-to-lead",
+  verifyToken,
+  authorizeRoles("admin", "employee"),
+  validateContactId,
+  require("../middlewares/validateLead").validateConvertContact,
+  asyncHandler(contactController.convertToLead)
+);
 router.put(
   "/:id",
   verifyToken,

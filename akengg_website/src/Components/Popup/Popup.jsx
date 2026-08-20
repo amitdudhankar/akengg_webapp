@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { submitContact } from "../../api/api";
 import { useToast } from "../Toast/ToastProvider";
 
-const Popup = ({ visible, onClose }) => {
+const Popup = ({ visible, onClose, onSubmitSuccess }) => {
   const popupRef = useRef(null);
   const toast = useToast();
   const [formData, setFormData] = useState({
@@ -32,6 +32,7 @@ const Popup = ({ visible, onClose }) => {
         source: "popup",
       });
       toast.success("We have received your enquiry and will be in touch soon.");
+      onSubmitSuccess?.();
       onClose();
     } catch (err) {
       toast.error(err.message || "Could not send your enquiry. Please try again.");

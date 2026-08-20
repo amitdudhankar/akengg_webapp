@@ -4,6 +4,8 @@ import { getBlog } from "../api/api";
 import Seo from "../Components/Seo";
 import JsonLd from "../Components/JsonLd";
 import { toSafeHtml, toExcerpt } from "../utils/blogContent";
+import RequestQuoteCta from "../Components/RequestQuoteCta";
+import { trackEvent } from "../utils/analytics";
 
 // Fallback post used when the fetch fails or returns null (preserves the
 // original hardcoded content so the page never renders blank).
@@ -176,12 +178,14 @@ const BlogDetail = () => {
           <p className="text-gray-400 mb-4">
             Need help with industrial solutions?
           </p>
-          <Link
-            to="/contact"
+          <RequestQuoteCta
             className="bg-[#F4C542] text-[#1c1f26] px-8 py-3 text-sm font-semibold hover:bg-[#e0b837] transition"
+            onClick={() =>
+              trackEvent("quote_request_started", { context: "blog_detail" })
+            }
           >
-            GET A QUOTE
-          </Link>
+            REQUEST A QUOTE
+          </RequestQuoteCta>
         </div>
       </div>
     </section>

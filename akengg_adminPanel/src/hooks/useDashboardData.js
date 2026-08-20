@@ -12,6 +12,8 @@ import {
   fetchTeam,
   fetchSubscribers,
   fetchUsers,
+  fetchLeadStats,
+  fetchFollowups,
 } from "../api/api";
 import { dateSortValue } from "../utils/date";
 
@@ -64,6 +66,8 @@ export default function useDashboardData() {
       fetchTeam(), // 9
       fetchSubscribers(), // 10
       fetchUsers(), // 11
+      fetchLeadStats(), // 12
+      fetchFollowups({ due: "today", limit: 8 }), // 13
     ]);
 
     // Only treat it as a hard error if literally everything failed (e.g. the
@@ -76,6 +80,7 @@ export default function useDashboardData() {
     const [
       docsR, contactsR, partiesR, catalogR, blogsR, servicesR,
       projectsR, statsR, testimonialsR, teamR, subsR, usersR,
+      leadStatsR, followupsTodayR,
     ] = settled.map(value);
 
     const documents = listOf(docsR);
@@ -144,6 +149,15 @@ export default function useDashboardData() {
           newLeads,
           total: contacts.length,
           recent: [...contacts].sort(byDateDesc).slice(0, 5),
+        },
+        // Sales pipeline (leads/follow-ups module). A failed stats call
+        // becomes null (rendered as "—" by StatCards, matching every other
+        // count above); a failed follow-ups call becomes [] — same
+        // list-defaults-to-empty convention as `documents`/`contacts` above,
+        // since an empty list is what the UI iterates over either way.
+        sales: {
+          stats: leadStatsR?.data?.data ?? null,
+          followupsToday: listOf(followupsTodayR),
         },
       },
     });

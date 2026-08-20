@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Inbox, FileSpreadsheet } from "lucide-react";
+import { Inbox, FileSpreadsheet, ArrowRightCircle } from "lucide-react";
 import * as XLSX from "xlsx";
-import { deleteContact, fetchContacts } from "../../api/api";
+import { deleteContact, fetchContacts, convertContactToLead } from "../../api/api";
 import Pagination from "../../components/ui/Pagination";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
 import Card from "../../components/ui/Card";
@@ -11,6 +11,7 @@ import PageHeader from "../../components/ui/PageHeader";
 import SearchInput from "../../components/ui/SearchInput";
 import Button from "../../components/ui/Button";
 import RowActions from "../../components/ui/RowActions";
+import IconButton from "../../components/ui/IconButton";
 import EmptyState from "../../components/ui/EmptyState";
 import StatusBadge from "../../components/ui/StatusBadge";
 import TableSkeleton from "../../components/ui/TableSkeleton";
@@ -36,6 +37,10 @@ function ContactLeads() {
   const [selectedContact, setSelectedContact] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [contactToConvert, setContactToConvert] = useState(null);
+  const [isConvertChecked, setIsConvertChecked] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const getContacts = async () => {
     setLoading(true);
@@ -104,6 +109,38 @@ function ContactLeads() {
       toast.error(error?.response?.data?.message || "Failed to delete contact");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleConvertClick = (contact) => {
+    setContactToConvert(contact);
+    setIsConvertChecked(false);
+    setIsConvertModalOpen(true);
+  };
+
+  const handleConvertConfirmed = async () => {
+    if (!isConvertChecked) {
+      toast.error("You must confirm the conversion.");
+      return;
+    }
+    if (!contactToConvert?.id) {
+      toast.error("No contact selected for conversion.");
+      return;
+    }
+    setConverting(true);
+    try {
+      const response = await convertContactToLead(contactToConvert.id, {});
+      toast.success(response?.data?.message || "Contact converted to lead successfully!");
+      setIsConvertModalOpen(false);
+      setContactToConvert(null);
+      const newLeadId = response?.data?.data?.id;
+      if (newLeadId) {
+        navigate(`/leads/${newLeadId}`);
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to convert contact to lead");
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -216,12 +253,20 @@ function ContactLeads() {
                       {fmtDate(contact.created_at)}
                     </Td>
                     <Td>
-                      <RowActions
-                        onEdit={() => navigate(`/edit-contact/${contact.id}`)}
-                        onDelete={() => handleDeleteClick(contact)}
-                        editLabel="Edit lead"
-                        deleteLabel="Delete lead"
-                      />
+                      <div className="flex items-center gap-1">
+                        <IconButton
+                          icon={ArrowRightCircle}
+                          label="Convert to Lead"
+                          tone="indigo"
+                          onClick={() => handleConvertClick(contact)}
+                        />
+                        <RowActions
+                          onEdit={() => navigate(`/edit-contact/${contact.id}`)}
+                          onDelete={() => handleDeleteClick(contact)}
+                          editLabel="Edit lead"
+                          deleteLabel="Delete lead"
+                        />
+                      </div>
                     </Td>
                   </Tr>
                 ))
@@ -240,6 +285,20 @@ function ContactLeads() {
         isChecked={isChecked}
         setIsChecked={setIsChecked}
         loading={deleting}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={isConvertModalOpen}
+        onClose={() => setIsConvertModalOpen(false)}
+        onDelete={handleConvertConfirmed}
+        title="Convert to Lead"
+        description="This will create a sales lead from this enquiry:"
+        itemName={contactToConvert?.email}
+        actionLabel="Convert"
+        confirmLabel="I understand this cannot be undone"
+        isChecked={isConvertChecked}
+        setIsChecked={setIsConvertChecked}
+        loading={converting}
       />
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
