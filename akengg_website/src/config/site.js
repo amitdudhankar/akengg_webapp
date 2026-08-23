@@ -2,7 +2,7 @@
 // (or via VITE_SITE_URL in .env) once your real domain is confirmed — every
 // canonical URL, Open Graph tag, sitemap entry and robots.txt line derives
 // from it. NAP (name/address/phone) mirrors the SettingsContext fallbacks.
-const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://www.akengg.in").replace(
+const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://akengg.in").replace(
   /\/+$/,
   ""
 );

@@ -36,7 +36,7 @@ jobs:
           cd akengg_website
           cat > .env <<'EOF'
           VITE_API_BASE_URL=https://api.akengg.in/api/v1
-          VITE_SITE_URL=https://www.akengg.in
+          VITE_SITE_URL=https://akengg.in
           VITE_GA4_ID=${{ secrets.VITE_GA4_ID }}
           EOF
           npm install
