@@ -15,7 +15,7 @@ const PrivacyPolicy = () => {
         <h1 className="text-3xl sm:text-4xl font-bold text-[#234B97] mb-2">
           Privacy Policy
         </h1>
-        <p className="text-sm text-gray-500 mb-10">Last updated: 14 June 2026</p>
+        <p className="text-sm text-gray-500 mb-10">Last updated: 14 October 2026</p>
 
         <div className="space-y-6 text-gray-700 leading-relaxed">
           <p>
@@ -29,10 +29,10 @@ const PrivacyPolicy = () => {
               Information we collect
             </h2>
             <p>
-              When you submit an enquiry or subscribe to updates, we collect the
-              details you provide — such as your name, phone number, email
-              address and message. We may also collect basic, non-identifying
-              usage data to improve the site.
+              When you submit an enquiry, chat with us or subscribe to updates,
+              we collect the details you provide — such as your name, phone
+              number, email address and message. We may also collect basic,
+              non-identifying usage data to improve the site.
             </p>
           </section>
 
@@ -66,7 +66,14 @@ const PrivacyPolicy = () => {
             <p>
               We use only the storage strictly necessary to make this website
               work, such as remembering your cookie choice itself. We do not
-              currently run advertising or third-party tracking cookies.
+              run advertising cookies.
+            </p>
+            <p className="mt-3">
+              Our live chat is provided by tawk.to. It sets its own cookies to
+              keep your conversation going as you move between pages, and lets
+              us see basic details such as the page you are viewing while you
+              chat. Messages you send through the chat are stored by tawk.to so
+              that we can reply to you.
             </p>
             <p className="mt-3">
               If we add analytics to understand how the site is used, it will
